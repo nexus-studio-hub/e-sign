@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { router } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 
 interface Notification {
   id: number
@@ -33,9 +33,9 @@ const fetchNotifications = async () => {
   }
 }
 
-const markAsRead = async (id: number, link: string | null) => {
+const markAsRead = async (id: number) => {
   try {
-    const response = await fetch(`/notifications/${id}/read`, { 
+    await fetch(`/notifications/${id}/read`, { 
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -44,25 +44,15 @@ const markAsRead = async (id: number, link: string | null) => {
       }
     })
     
-    if (response.ok) {
-      // Update local state immediately
-      const notif = notifications.value.find(n => n.id === id)
-      if (notif) {
-        notif.read_at = new Date().toISOString()
-        unreadCount.value = Math.max(0, unreadCount.value - 1)
-      }
-      
-      // Navigate if link exists
-      if (link) {
-        isOpen.value = false
-        router.visit(link, {
-          onFinish: () => {
-            // Refresh notifications after navigation
-            fetchNotifications()
-          }
-        })
-      }
+    // Update local state immediately
+    const notif = notifications.value.find(n => n.id === id)
+    if (notif) {
+      notif.read_at = new Date().toISOString()
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
     }
+    
+    // Close dropdown
+    isOpen.value = false
   } catch (error) {
     console.error('Failed to mark as read:', error)
   }
@@ -145,17 +135,18 @@ onMounted(() => {
       </div>
       
       <div class="max-h-96 overflow-y-auto">
-        <div 
+        <Link 
           v-for="notif in notifications" 
           :key="notif.id"
-          @click="markAsRead(notif.id, notif.link)"
-          class="p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors"
+          :href="notif.link || '#'"
+          @click="markAsRead(notif.id)"
+          class="block p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors"
           :class="!notif.read_at ? 'bg-blue-50' : ''"
         >
           <div class="font-semibold text-sm">{{ notif.title }}</div>
           <div class="text-xs text-gray-600 mt-1">{{ notif.message }}</div>
           <div class="text-xs text-gray-400 mt-2">{{ formatDate(notif.created_at) }}</div>
-        </div>
+        </Link>
         <div v-if="notifications.length === 0" class="p-8 text-center text-gray-500 text-sm">
           No notifications
         </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -22,20 +23,31 @@ const uploadForm = useForm({
   file: null as File | null
 })
 
+const uploadingFiles = ref<Record<number, boolean>>({})
+const selectedFiles = ref<Record<number, string>>({})
+
 const handleFileUpload = (documentId: number, event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
+    const file = target.files[0]
+    
+    selectedFiles.value[documentId] = file.name
+    uploadingFiles.value[documentId] = true
+    
     const formData = new FormData()
-    formData.append('file', target.files[0])
+    formData.append('file', file)
     
     uploadForm.post(`/documents/${documentId}/upload`, {
       data: formData,
       forceFormData: true,
       onSuccess: () => {
+        uploadingFiles.value[documentId] = false
+        selectedFiles.value[documentId] = ''
         uploadForm.reset()
         target.value = ''
       },
       onError: (errors) => {
+        uploadingFiles.value[documentId] = false
         console.error('Upload error:', errors)
       }
     })
@@ -227,19 +239,27 @@ const downloadCertificate = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div class="flex gap-2">
-                     <label v-if="userRole === 'supplier' && reqDoc.document && (reqDoc.document.status === 'draft' || reqDoc.document.status === 'need_revision')" class="cursor-pointer">
+                  <div class="flex gap-2 items-center">
+                    <div v-if="userRole === 'supplier' && reqDoc.document && (reqDoc.document.status === 'draft' || reqDoc.document.status === 'need_revision')" class="flex items-center gap-2">
                       <input 
                         type="file" 
+                        :id="`file-${reqDoc.document.id}`"
                         class="hidden"
                         accept=".pdf,.doc,.docx,.xls,.xlsx"
                         @change="handleFileUpload(reqDoc.document.id, $event)"
                       />
-                      <Button size="sm" variant="outline" as="span" type="button">
+                      <label :for="`file-${reqDoc.document.id}`" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3 cursor-pointer">
                         <Upload class="w-4 h-4 mr-1" />
-                        Upload
-                      </Button>
-                    </label>
+                        {{ uploadingFiles[reqDoc.document.id] ? 'Uploading...' : 'Upload' }}
+                      </label>
+                      
+                      <span v-if="selectedFiles[reqDoc.document.id]" class="text-xs text-gray-600">
+                        {{ selectedFiles[reqDoc.document.id] }}
+                      </span>
+                      <span v-else-if="reqDoc.document?.latest_version" class="text-xs text-gray-600">
+                        {{ reqDoc.document.latest_version.file_name }}
+                      </span>
+                    </div>
                     
                     <Button 
                       v-if="userRole === 'supplier' && reqDoc.document?.current_version > 0 && reqDoc.document?.status === 'draft'"
