@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { router } from '@inertiajs/vue3'
 import { Upload, CheckCircle, XCircle, FileText, RefreshCw, ArrowDownCircle, ArrowUpCircle } from 'lucide-vue-next'
 
 interface Activity {
@@ -41,7 +42,7 @@ const getIcon = (iconName: string) => {
 
 const getActivityStyle = (type: string) => {
   // Incoming activities (masuk) - hijau
-  const incomingTypes = ['project_assigned', 'review_received']
+  const incomingTypes = ['project_assigned', 'review_received', 'document_received']
   
   // Outgoing activities (keluar) - merah
   const outgoingTypes = ['upload', 'document_submitted', 'review_approved', 'review_rejected', 'project_created']
@@ -82,8 +83,21 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString()
 }
 
+let removeFinishListener: (() => void) | null = null
+
 onMounted(() => {
   fetchActivities()
+  
+  // Listen to Inertia finish event to refresh activities
+  removeFinishListener = router.on('finish', () => {
+    fetchActivities()
+  })
+})
+
+onUnmounted(() => {
+  if (removeFinishListener) {
+    removeFinishListener()
+  }
 })
 </script>
 

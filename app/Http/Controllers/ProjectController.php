@@ -43,7 +43,7 @@ class ProjectController extends Controller
 
     public function show($id)
     {
-        $project = Project::with(['supplier', 'pic', 'requiredDocuments.document.latestVersion', 'documents'])->findOrFail($id);
+        $project = Project::with(['supplier', 'pic', 'requiredDocuments.document.latestVersion', 'requiredDocuments.document.reviews.reviewer', 'documents'])->findOrFail($id);
         
         $approvers = $project->getAllApprovers();
 

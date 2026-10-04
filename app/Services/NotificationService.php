@@ -55,14 +55,19 @@ class NotificationService
         $pic = $document->project->pic;
         if (!$pic) return;
 
-        $title = "New Document Submitted";
-        $message = "Document '{$document->requiredDocument->document_name}' is ready for your review";
+        $supplierName = $document->project->supplier->name;
+        $documentName = $document->requiredDocument->document_name;
+        
+        $title = "Document Ready for Review";
+        $message = "↓ in: {$supplierName} - {$documentName}";
         $link = "/reviews/{$document->id}";
 
         self::notify($pic->id, 'document_submitted', $title, $message, $link, [
             'document_id' => $document->id,
             'project_id' => $document->project_id,
         ]);
+        
+        self::logActivity($pic->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
     }
 
     public static function notifyProjectAssigned($project)

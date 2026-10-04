@@ -37,13 +37,11 @@ const handleFileUpload = (documentId: number, event: Event) => {
     const formData = new FormData()
     formData.append('file', file)
     
-    uploadForm.post(`/documents/${documentId}/upload`, {
-      data: formData,
+    router.post(`/documents/${documentId}/upload`, formData, {
       forceFormData: true,
       onSuccess: () => {
         uploadingFiles.value[documentId] = false
         selectedFiles.value[documentId] = ''
-        uploadForm.reset()
         target.value = ''
       },
       onError: (errors) => {
@@ -74,6 +72,27 @@ const getStatusColor = (status: string) => {
 const completedDocs = props.project.documents.filter((d: any) => d.status === 'complete').length
 const totalDocs = props.project.documents.length
 const progress = totalDocs > 0 ? (completedDocs / totalDocs) * 100 : 0
+
+const hasUserReviewed = (document: any) => {
+  if (!document?.reviews) return false
+  return document.reviews.some((r: any) => r.reviewer_id === page.props.auth.user?.id)
+}
+
+const canReviewNow = (document: any) => {
+  if (!document) return false
+  if (userRole === 'pic_development' && document.status === 'under_pic_review') return true
+  if (userRole === 'group_leader' && document.status === 'under_group_review') return true
+  if (userRole === 'manager' && document.status === 'under_manager_review') return true
+  return false
+}
+
+const showReviewButton = (document: any) => {
+  return hasUserReviewed(document) || canReviewNow(document)
+}
+
+const getReviewButtonText = (document: any) => {
+  return hasUserReviewed(document) ? 'Edit Review' : 'Review'
+}
 
 const deleteProject = () => {
   if (confirm('Are you sure you want to delete this project?')) {
@@ -262,7 +281,7 @@ const downloadCertificate = () => {
                     </div>
                     
                     <Button 
-                      v-if="userRole === 'supplier' && reqDoc.document?.current_version > 0 && reqDoc.document?.status === 'draft'"
+                      v-if="userRole === 'supplier' && reqDoc.document?.current_version > 0 && (reqDoc.document?.status === 'draft' || reqDoc.document?.status === 'need_revision')"
                       size="sm" 
                       @click="submitDocument(reqDoc.document.id)"
                     >
@@ -279,13 +298,11 @@ const downloadCertificate = () => {
                     </a>
                     
                     <a 
-                      v-if="(userRole === 'pic_development' && reqDoc.document?.status === 'under_pic_review') ||
-                            (userRole === 'group_leader' && reqDoc.document?.status === 'under_group_review') ||
-                            (userRole === 'manager' && reqDoc.document?.status === 'under_manager_review')"
+                      v-if="showReviewButton(reqDoc.document)"
                       :href="`/reviews/${reqDoc.document.id}`"
                     >
                       <Button size="sm">
-                        Review
+                        {{ getReviewButtonText(reqDoc.document) }}
                       </Button>
                     </a>
                   </div>

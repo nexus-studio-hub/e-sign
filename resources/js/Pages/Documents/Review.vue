@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useForm, usePage } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Download, CheckCircle, XCircle } from 'lucide-vue-next'
 
 interface Props {
@@ -18,10 +18,20 @@ const page = usePage()
 const userRole = page.props.auth.user?.role
 
 const canReview = computed(() => {
-  if (userRole === 'pic_development' && props.document.status === 'under_pic_review') return true
-  if (userRole === 'group_leader' && props.document.status === 'under_group_review') return true
-  if (userRole === 'manager' && props.document.status === 'under_manager_review') return true
+  // Allow review if user has appropriate role
+  // Don't check document status - allow editing existing reviews
+  if (userRole === 'pic_development') return true
+  if (userRole === 'group_leader') return true
+  if (userRole === 'manager') return true
   return false
+})
+
+const userReview = computed(() => {
+  return props.document.reviews?.find((r: any) => r.reviewer_id === page.props.auth.user?.id)
+})
+
+const reviewAction = computed(() => {
+  return userReview.value ? 'Update' : 'Submit'
 })
 
 const approveForm = useForm({
@@ -32,9 +42,22 @@ const rejectForm = useForm({
   comment: ''
 })
 
+// Pre-fill forms when userReview exists
+watch(() => userReview.value, (review) => {
+  if (review) {
+    approveForm.comment = review.comment || ''
+    rejectForm.comment = review.comment || ''
+  }
+}, { immediate: true })
+
 const showRejectForm = ref(false)
 
 const approve = () => {
+  if (userReview.value && userReview.value.status === 'rejected') {
+    if (!confirm('You previously rejected this document. Are you sure you want to change to approve?')) {
+      return
+    }
+  }
   approveForm.post(`/reviews/${props.document.id}/approve`)
 }
 
@@ -42,6 +65,11 @@ const reject = () => {
   if (!rejectForm.comment) {
     alert('Comment is required when rejecting')
     return
+  }
+  if (userReview.value && userReview.value.status === 'approved') {
+    if (!confirm('You previously approved this document. Are you sure you want to change to reject?')) {
+      return
+    }
   }
   rejectForm.post(`/reviews/${props.document.id}/reject`)
 }
@@ -154,6 +182,13 @@ const getStatusColor = (status: string) => {
             <p class="text-muted-foreground">You don't have permission to review this document.</p>
           </div>
           <div v-else class="space-y-4">
+            <div v-if="userReview" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p class="text-sm text-blue-800">
+                You have already reviewed this document as <strong>{{ userReview.status }}</strong>. 
+                You can update your review below.
+              </p>
+            </div>
+            
             <div v-if="!showRejectForm">
               <div class="space-y-2">
                 <label class="text-sm font-medium">Comment (Optional)</label>
@@ -162,11 +197,11 @@ const getStatusColor = (status: string) => {
               <div class="flex gap-2 mt-4">
                 <Button @click="approve" :disabled="approveForm.processing">
                   <CheckCircle class="w-4 h-4 mr-2" />
-                  Approve
+                  {{ reviewAction }} Approve
                 </Button>
                 <Button variant="destructive" @click="showRejectForm = true">
                   <XCircle class="w-4 h-4 mr-2" />
-                  Reject
+                  {{ reviewAction }} Reject
                 </Button>
               </div>
             </div>
@@ -179,7 +214,7 @@ const getStatusColor = (status: string) => {
               <div class="flex gap-2 mt-4">
                 <Button variant="destructive" @click="reject" :disabled="rejectForm.processing">
                   <XCircle class="w-4 h-4 mr-2" />
-                  Confirm Reject
+                  Confirm {{ reviewAction }} Reject
                 </Button>
                 <Button variant="outline" @click="showRejectForm = false">
                   Cancel
