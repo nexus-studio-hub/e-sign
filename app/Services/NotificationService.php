@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Notification;
+use App\Models\ActivityLog;
+
+class NotificationService
+{
+    public static function notify($userId, $type, $title, $message, $link = null, $data = [])
+    {
+        return Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'link' => $link,
+            'data' => $data,
+        ]);
+    }
+
+    public static function logActivity($userId, $type, $action, $icon = 'file', $data = [])
+    {
+        return ActivityLog::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'action' => $action,
+            'icon' => $icon,
+            'data' => $data,
+        ]);
+    }
+
+    public static function notifyDocumentReviewed($document, $review)
+    {
+        $supplierUsers = $document->project->supplier->users;
+        if ($supplierUsers->isEmpty()) return;
+
+        $status = $review->status === 'approved' ? 'approved' : 'rejected';
+        $title = "Document Reviewed";
+        $message = "Your document '{$document->requiredDocument->document_name}' has been {$status} by {$review->reviewer->name}";
+        $link = "/projects/{$document->project_id}";
+
+        foreach ($supplierUsers as $supplierUser) {
+            self::notify($supplierUser->id, "review_{$status}", $title, $message, $link, [
+                'document_id' => $document->id,
+                'review_id' => $review->id,
+            ]);
+
+            self::logActivity($supplierUser->id, 'review_received', "Received {$status} review", 'check-circle');
+        }
+    }
+
+    public static function notifyDocumentSubmitted($document)
+    {
+        $pic = $document->project->pic;
+        if (!$pic) return;
+
+        $title = "New Document Submitted";
+        $message = "Document '{$document->requiredDocument->document_name}' is ready for your review";
+        $link = "/reviews/{$document->id}";
+
+        self::notify($pic->id, 'document_submitted', $title, $message, $link, [
+            'document_id' => $document->id,
+            'project_id' => $document->project_id,
+        ]);
+    }
+
+    public static function notifyProjectAssigned($project)
+    {
+        $supplierUsers = $project->supplier->users;
+        if ($supplierUsers->isEmpty()) return;
+
+        $title = "New Project Assigned";
+        $message = "You have been assigned to project {$project->project_code}: {$project->project_name}";
+        $link = "/projects/{$project->id}";
+
+        foreach ($supplierUsers as $user) {
+            self::notify($user->id, 'project_assigned', $title, $message, $link, [
+                'project_id' => $project->id,
+            ]);
+
+            self::logActivity($user->id, 'project_assigned', "Assigned to project {$project->project_code}", 'file-text');
+        }
+    }
+}
