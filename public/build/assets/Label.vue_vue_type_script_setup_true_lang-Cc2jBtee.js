@@ -1,1 +1,0 @@
-import{e as o}from"./createLucideIcon-8ZGLnoBb.js";import{d as n,o as r,c as l,m as t,n as c,b as m}from"./app-B3y2p50E.js";const f=n({__name:"Label",props:{class:{}},setup(e){const s=e;return(a,p)=>(r(),l("label",{class:c(m(o)("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",s.class))},[t(a.$slots,"default")],2))}});export{f as _};

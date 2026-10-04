@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Link } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 
 interface Notification {
   id: number
@@ -33,9 +33,10 @@ const fetchNotifications = async () => {
   }
 }
 
-const markAsRead = async (id: number) => {
+const markAsRead = async (id: number): Promise<boolean> => {
+  console.log('🔵 markAsRead START:', id)
   try {
-    await fetch(`/notifications/${id}/read`, { 
+    const response = await fetch(`/notifications/${id}/read`, { 
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -43,18 +44,21 @@ const markAsRead = async (id: number) => {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
+    console.log('🟢 Response status:', response.status)
     
-    // Update local state immediately
-    const notif = notifications.value.find(n => n.id === id)
-    if (notif) {
-      notif.read_at = new Date().toISOString()
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    if (!response.ok) {
+      console.error('❌ Server error:', response.status, response.statusText)
+      if (response.status === 419) {
+        console.error('❌ CSRF token mismatch! Check meta tag.')
+      }
+      return false
     }
     
-    // Close dropdown
-    isOpen.value = false
+    console.log('✅ Server confirmed!')
+    return true
   } catch (error) {
-    console.error('Failed to mark as read:', error)
+    console.error('❌ markAsRead ERROR:', error)
+    return false
   }
 }
 
@@ -76,6 +80,49 @@ const markAllAsRead = async () => {
     unreadCount.value = 0
   } catch (error) {
     console.error('Failed to mark all as read:', error)
+  }
+}
+
+const handleNotificationClick = async (notif: Notification) => {
+  console.log('🎯 Clicked notification:', notif.id, 'read_at:', notif.read_at)
+  
+  // Optimistic update - update UI immediately
+  const wasUnread = !notif.read_at
+  if (wasUnread) {
+    const index = notifications.value.findIndex(n => n.id === notif.id)
+    if (index !== -1) {
+      notifications.value[index] = {
+        ...notifications.value[index],
+        read_at: new Date().toISOString()
+      }
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+      console.log('⚡ Optimistic update! New count:', unreadCount.value)
+    }
+  }
+  
+  // Call server and check if it succeeded
+  const success = await markAsRead(notif.id)
+  
+  // Rollback if server failed
+  if (!success && wasUnread) {
+    const index = notifications.value.findIndex(n => n.id === notif.id)
+    if (index !== -1) {
+      notifications.value[index] = {
+        ...notifications.value[index],
+        read_at: null
+      }
+      unreadCount.value += 1
+      console.log('🔄 Rolled back! Count restored:', unreadCount.value)
+    }
+  }
+  
+  // Small delay for UI feedback
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  isOpen.value = false
+  if (notif.link) {
+    console.log('🔗 Navigating to:', notif.link)
+    router.visit(notif.link)
   }
 }
 
@@ -139,7 +186,7 @@ onMounted(() => {
           v-for="notif in notifications" 
           :key="notif.id"
           :href="notif.link || '#'"
-          @click="markAsRead(notif.id)"
+          @click.prevent="handleNotificationClick(notif)"
           class="block p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors"
           :class="!notif.read_at ? 'bg-blue-50' : ''"
         >
