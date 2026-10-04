@@ -109,7 +109,7 @@ onUnmounted(() => {
       </p>
     </div>
     
-    <div class="space-y-2 px-3">
+    <div class="space-y-2 px-3 max-h-[400px] overflow-y-auto">
       <div 
         v-for="activity in activities" 
         :key="activity.id"

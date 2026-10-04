@@ -50,10 +50,25 @@ const getStatusColor = (status: string) => {
     draft: 'bg-gray-100 text-gray-800',
     submitted: 'bg-blue-100 text-blue-800',
     under_pic_review: 'bg-purple-100 text-purple-800',
+    under_group_review: 'bg-blue-100 text-blue-800',
+    under_manager_review: 'bg-orange-100 text-orange-800',
     need_revision: 'bg-red-100 text-red-800',
     complete: 'bg-green-100 text-green-800'
   }
   return colors[status] || 'bg-gray-100 text-gray-800'
+}
+
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    draft: 'Draft',
+    submitted: 'Submitted',
+    under_pic_review: 'Under PIC Review',
+    under_group_review: 'Under Group Review',
+    under_manager_review: 'Under Manager Review',
+    need_revision: 'Need Revision',
+    complete: 'Complete'
+  }
+  return texts[status] || status
 }
 </script>
 
@@ -155,7 +170,7 @@ const getStatusColor = (status: string) => {
                 <TableCell>{{ project.supplier?.name }}</TableCell>
                 <TableCell>{{ project.due_date }}</TableCell>
                 <TableCell>
-                  <Badge :class="getStatusColor(project.status)">{{ project.status }}</Badge>
+                  <Badge :class="getStatusColor(project.status)">{{ getStatusText(project.status) }}</Badge>
                 </TableCell>
                 <TableCell>
                   <a :href="`/projects/${project.id}`" class="text-cyan-600 hover:underline">View</a>

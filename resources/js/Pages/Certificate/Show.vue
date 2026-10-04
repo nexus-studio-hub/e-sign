@@ -94,35 +94,6 @@ defineProps<Props>()
         </CardContent>
       </Card>
 
-      <!-- Approval Chain -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="text-base md:text-lg">Approval Chain</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-2 md:space-y-3">
-            <div 
-              v-for="(approver, index) in approvers" 
-              :key="approver.id"
-              class="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-green-50 border-l-4 border-green-500 rounded"
-            >
-              <div class="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm md:text-base">
-                {{ index + 1 }}
-              </div>
-              <div class="flex-1">
-                <div class="font-semibold text-base md:text-lg">{{ approver.name }}</div>
-                <div class="text-xs md:text-sm text-muted-foreground capitalize">
-                  {{ approver.role.replace('_', ' ') }}
-                </div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  ✓ Approved on: {{ approver.reviewed_at }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <!-- Footer -->
       <div class="text-center text-xs md:text-sm text-slate-500 py-4">
         <p>This is an electronically verified certificate from E-SIGN Document Control System</p>

@@ -87,4 +87,33 @@ class NotificationService
             self::logActivity($user->id, 'project_assigned', "Assigned to project {$project->project_code}", 'file-text');
         }
     }
+
+    public static function notifyNextReviewer($document)
+    {
+        $status = $document->status;
+        $reviewer = null;
+
+        // Determine next reviewer based on status
+        if ($status === 'under_group_review') {
+            $reviewer = \App\Models\User::where('role', 'group_leader')->first();
+        } elseif ($status === 'under_manager_review') {
+            $reviewer = \App\Models\User::where('role', 'manager')->first();
+        }
+
+        if (!$reviewer) return;
+
+        $supplierName = $document->project->supplier->name;
+        $documentName = $document->requiredDocument->document_name;
+        
+        $title = "Document Ready for Review";
+        $message = "↓ in: {$supplierName} - {$documentName}";
+        $link = "/reviews/{$document->id}";
+
+        self::notify($reviewer->id, 'document_submitted', $title, $message, $link, [
+            'document_id' => $document->id,
+            'project_id' => $document->project_id,
+        ]);
+        
+        self::logActivity($reviewer->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
+    }
 }

@@ -10,9 +10,14 @@ import { Download, CheckCircle, XCircle } from 'lucide-vue-next'
 
 interface Props {
   document: any
+  allReviews: any[]
 }
 
 const props = defineProps<Props>()
+
+console.log('=== REVIEW PAGE ===')
+console.log('allReviews count:', props.allReviews?.length)
+console.log('allReviews:', props.allReviews)
 
 const page = usePage()
 const userRole = page.props.auth.user?.role
@@ -27,7 +32,7 @@ const canReview = computed(() => {
 })
 
 const userReview = computed(() => {
-  return props.document.reviews?.find((r: any) => r.reviewer_id === page.props.auth.user?.id)
+  return props.allReviews?.find((r: any) => r.reviewer_id === page.props.auth.user?.id)
 })
 
 const reviewAction = computed(() => {
@@ -79,12 +84,25 @@ const getStatusColor = (status: string) => {
     draft: 'bg-gray-100 text-gray-800',
     submitted: 'bg-blue-100 text-blue-800',
     under_pic_review: 'bg-purple-100 text-purple-800',
-    under_group_review: 'bg-purple-100 text-purple-800',
-    under_manager_review: 'bg-purple-100 text-purple-800',
+    under_group_review: 'bg-blue-100 text-blue-800',
+    under_manager_review: 'bg-orange-100 text-orange-800',
     need_revision: 'bg-red-100 text-red-800',
     complete: 'bg-green-100 text-green-800'
   }
   return colors[status] || 'bg-gray-100 text-gray-800'
+}
+
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    draft: 'Draft',
+    submitted: 'Submitted',
+    under_pic_review: 'Under PIC Review',
+    under_group_review: 'Under Group Review',
+    under_manager_review: 'Under Manager Review',
+    need_revision: 'Need Revision',
+    complete: 'Complete'
+  }
+  return texts[status] || status
 }
 </script>
 
@@ -116,12 +134,12 @@ const getStatusColor = (status: string) => {
               <div class="font-medium">v{{ document.current_version }}</div>
               
               <div class="text-muted-foreground">Status:</div>
-              <div>
-                <Badge :class="getStatusColor(document.status)">{{ document.status }}</Badge>
-              </div>
+                  <div>
+                    <Badge :class="getStatusColor(document.status)">{{ getStatusText(document.status) }}</Badge>
+                  </div>
               
               <div class="text-muted-foreground">Uploaded:</div>
-              <div class="font-medium">{{ document.latest_version?.uploaded_at }}</div>
+              <div class="font-medium">{{ document.latest_version?.formatted_uploaded_at }}</div>
             </div>
           </CardContent>
         </Card>
@@ -153,77 +171,80 @@ const getStatusColor = (status: string) => {
         </Card>
       </div>
 
-      <Card v-if="document.reviews?.length > 0">
-        <CardHeader>
-          <CardTitle>Review History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <div v-for="review in document.reviews" :key="review.id" class="border-l-4 pl-4" :class="review.status === 'approved' ? 'border-green-500' : 'border-red-500'">
-              <div class="flex items-center gap-2 mb-1">
-                <CheckCircle v-if="review.status === 'approved'" class="w-4 h-4 text-green-500" />
-                <XCircle v-else class="w-4 h-4 text-red-500" />
-                <span class="font-medium">{{ review.reviewer?.name }}</span>
-                <span class="text-sm text-muted-foreground">({{ review.reviewer_role }})</span>
+      <div class="grid gap-6 md:grid-cols-2">
+        <Card v-if="allReviews && allReviews.length > 0">
+          <CardHeader>
+            <CardTitle>Review History ({{ allReviews.length }} reviews)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-4 max-h-[400px] overflow-y-auto">
+              <div v-for="(review, index) in allReviews" :key="review.id" class="border-l-4 pl-4" :class="review.status === 'approved' ? 'border-green-500' : 'border-red-500'">
+                <div class="flex items-center gap-2 mb-1">
+                  <CheckCircle v-if="review.status === 'approved'" class="w-4 h-4 text-green-500" />
+                  <XCircle v-else class="w-4 h-4 text-red-500" />
+                  <span class="font-medium">{{ review.reviewer?.name }}</span>
+                  <span class="text-sm text-muted-foreground">({{ review.reviewer_role }})</span>
+                  <span class="text-xs text-gray-400">#{{ index + 1 }}</span>
+                </div>
+                <p class="text-sm text-muted-foreground">{{ review.reviewed_at }}</p>
+                <p v-if="review.comment" class="text-sm mt-2">{{ review.comment }}</p>
               </div>
-              <p class="text-sm text-muted-foreground">{{ review.reviewed_at }}</p>
-              <p v-if="review.comment" class="text-sm mt-2">{{ review.comment }}</p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Review Action</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div v-if="!canReview" class="text-center py-8">
-            <p class="text-muted-foreground">You don't have permission to review this document.</p>
-          </div>
-          <div v-else class="space-y-4">
-            <div v-if="userReview" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p class="text-sm text-blue-800">
-                You have already reviewed this document as <strong>{{ userReview.status }}</strong>. 
-                You can update your review below.
-              </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Review Action</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div v-if="!canReview" class="text-center py-8">
+              <p class="text-muted-foreground">You don't have permission to review this document.</p>
             </div>
-            
-            <div v-if="!showRejectForm">
-              <div class="space-y-2">
-                <label class="text-sm font-medium">Comment (Optional)</label>
-                <Textarea v-model="approveForm.comment" placeholder="Add your review comment..." :rows="3" />
+            <div v-else class="space-y-4">
+              <div v-if="userReview" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p class="text-sm text-blue-800">
+                  You have already reviewed this document as <strong>{{ userReview.status }}</strong>. 
+                  You can update your review below.
+                </p>
               </div>
-              <div class="flex gap-2 mt-4">
-                <Button @click="approve" :disabled="approveForm.processing">
-                  <CheckCircle class="w-4 h-4 mr-2" />
-                  {{ reviewAction }} Approve
-                </Button>
-                <Button variant="destructive" @click="showRejectForm = true">
-                  <XCircle class="w-4 h-4 mr-2" />
-                  {{ reviewAction }} Reject
-                </Button>
+              
+              <div v-if="!showRejectForm">
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">Comment (Optional)</label>
+                  <Textarea v-model="approveForm.comment" placeholder="Add your review comment..." :rows="3" />
+                </div>
+                <div class="flex gap-2 mt-4">
+                  <Button @click="approve" :disabled="approveForm.processing">
+                    <CheckCircle class="w-4 h-4 mr-2" />
+                    {{ reviewAction }} Approve
+                  </Button>
+                  <Button variant="destructive" @click="showRejectForm = true">
+                    <XCircle class="w-4 h-4 mr-2" />
+                    {{ reviewAction }} Reject
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <div v-else>
-              <div class="space-y-2">
-                <label class="text-sm font-medium">Rejection Reason (Required)</label>
-                <Textarea v-model="rejectForm.comment" placeholder="Please provide reason for rejection..." :rows="3" />
-              </div>
-              <div class="flex gap-2 mt-4">
-                <Button variant="destructive" @click="reject" :disabled="rejectForm.processing">
-                  <XCircle class="w-4 h-4 mr-2" />
-                  Confirm {{ reviewAction }} Reject
-                </Button>
-                <Button variant="outline" @click="showRejectForm = false">
-                  Cancel
-                </Button>
+              <div v-else>
+                <div class="space-y-2">
+                  <label class="text-sm font-medium">Rejection Reason (Required)</label>
+                  <Textarea v-model="rejectForm.comment" placeholder="Please provide reason for rejection..." :rows="3" />
+                </div>
+                <div class="flex gap-2 mt-4">
+                  <Button variant="destructive" @click="reject" :disabled="rejectForm.processing">
+                    <XCircle class="w-4 h-4 mr-2" />
+                    Confirm {{ reviewAction }} Reject
+                  </Button>
+                  <Button variant="outline" @click="showRejectForm = false">
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   </AuthenticatedLayout>
 </template>

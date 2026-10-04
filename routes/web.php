@@ -71,3 +71,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/reviews/{id}/reject', [ReviewController::class, 'reject'])->name('reviews.reject')->middleware('role:pic_development,group_leader,manager');
 });
 
+
+// Debug route - remove after testing
+Route::get('/debug-reviews/{id}', function($id) {
+    $document = \App\Models\Document::with(['project', 'requiredDocument', 'latestVersion', 'reviews.reviewer'])->findOrFail($id);
+    return response()->json([
+        'reviews_count' => $document->reviews->count(),
+        'review_ids' => $document->reviews->pluck('id')->toArray(),
+        'reviews' => $document->reviews->toArray(),
+    ]);
+});
+
+// Debug Inertia response
+Route::get('/debug-inertia-reviews/{id}', function($id) {
+    $document = \App\Models\Document::with(['project', 'requiredDocument', 'latestVersion', 'reviews.reviewer'])->findOrFail($id);
+    return \Inertia\Inertia::render('DebugReviews', [
+        'reviews_count' => $document->reviews->count(),
+        'reviews' => $document->reviews,
+        'document' => $document,
+    ]);
+});

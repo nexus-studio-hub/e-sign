@@ -10,6 +10,13 @@ class DocumentVersion extends Model
 
     protected $casts = ['uploaded_at' => 'datetime'];
 
+    protected $appends = ['formatted_uploaded_at'];
+
+    public function getFormattedUploadedAtAttribute()
+    {
+        return $this->uploaded_at ? $this->uploaded_at->format('d M Y, H:i') : null;
+    }
+
     public function document()
     {
         return $this->belongsTo(Document::class);

@@ -74,7 +74,7 @@ class Project extends Model
                 'id' => $review->reviewer->id,
                 'name' => $review->reviewer->name,
                 'role' => $review->reviewer_role,
-                'reviewed_at' => $review->reviewed_at->format('Y-m-d H:i'),
+                'reviewed_at' => $review->reviewed_at->format('d M Y, H:i'),
             ];
         });
     }

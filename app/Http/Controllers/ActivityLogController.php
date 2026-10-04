@@ -11,7 +11,7 @@ class ActivityLogController extends Controller
         $activities = auth()->user()
             ->activityLogs()
             ->latest()
-            ->limit(10)
+            ->limit(5)
             ->get();
         
         // Check if request expects JSON (from fetch API)

@@ -58,6 +58,16 @@ const getStatusColor = (status: string) => {
   }
   return colors[status] || 'bg-gray-100 text-gray-800'
 }
+
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    draft: 'Draft',
+    active: 'Active',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  }
+  return texts[status] || status
+}
 </script>
 
 <template>
@@ -114,7 +124,7 @@ const getStatusColor = (status: string) => {
                 <TableCell>{{ project.pic?.name }}</TableCell>
                 <TableCell>{{ project.due_date }}</TableCell>
                 <TableCell>
-                  <Badge :class="getStatusColor(project.status)">{{ project.status }}</Badge>
+                  <Badge :class="getStatusColor(project.status)">{{ getStatusText(project.status) }}</Badge>
                 </TableCell>
                 <TableCell>
                   <Link :href="`/projects/${project.id}`" class="text-cyan-600 hover:underline">View</Link>
