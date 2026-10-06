@@ -15,12 +15,13 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Project::with(['supplier', 'pic']);
+        $query = Project::withCount('parts');
 
+        // Filter for supplier: only show projects with parts assigned to them
         if ($user->role === 'supplier') {
-            $query->where('supplier_id', $user->supplier_id);
-        } elseif ($user->role === 'pic_development') {
-            $query->where('pic_id', $user->id);
+            $query->whereHas('parts', function($q) use ($user) {
+                $q->where('supplier_id', $user->supplier_id);
+            });
         }
 
         // Server-side search
@@ -28,11 +29,7 @@ class ProjectController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('project_code', 'like', "%{$search}%")
-                  ->orWhere('project_name', 'like', "%{$search}%")
-                  ->orWhere('model', 'like', "%{$search}%")
-                  ->orWhereHas('supplier', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  });
+                  ->orWhere('project_name', 'like', "%{$search}%");
             });
         }
 
@@ -41,23 +38,31 @@ class ProjectController extends Controller
         return Inertia::render('Projects/Index', compact('projects'));
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $project = Project::with(['supplier', 'pic', 'requiredDocuments.document.latestVersion', 'requiredDocuments.document.reviews.reviewer', 'documents'])->findOrFail($id);
+        $user = $request->user();
         
-        $approvers = $project->getAllApprovers();
-
+        $project = Project::with(['parts.supplier', 'parts.requiredDocuments.document.latestVersion'])->findOrFail($id);
+        
+        // Filter parts for supplier: only show parts assigned to them
+        if ($user->role === 'supplier') {
+            $project->load(['parts' => function($q) use ($user) {
+                $q->where('supplier_id', $user->supplier_id);
+            }]);
+        }
+        
+        $suppliers = Supplier::where('status', 'active')->get();
+        
         return Inertia::render('Projects/Show', [
-            'project' => array_merge($project->toArray(), [
-                'approvers' => $approvers
-            ])
+            'project' => $project,
+            'suppliers' => $suppliers
         ]);
     }
 
     public function create()
     {
-        $suppliers = Supplier::where('status', 'active')->get();
-        return Inertia::render('Projects/Create', compact('suppliers'));
+        // Not needed anymore - using modal
+        return redirect()->route('projects.index');
     }
 
     public function store(Request $request)
@@ -65,35 +70,11 @@ class ProjectController extends Controller
         $data = $request->validate([
             'project_code' => 'required|unique:projects',
             'project_name' => 'required',
-            'model' => 'required',
-            'part_number' => 'required',
-            'part_name' => 'required',
-            'supplier_id' => 'required|exists:suppliers,id',
-            'start_date' => 'required|date',
-            'due_date' => 'required|date',
-            'documents' => 'required|array',
         ]);
 
-        $project = Project::create(array_merge($data, ['pic_id' => $request->user()->id, 'status' => 'active']));
+        $project = Project::create(array_merge($data, ['status' => 'active']));
 
-        foreach ($request->documents as $doc) {
-            $reqDoc = RequiredDocument::create([
-                'project_id' => $project->id,
-                'document_name' => $doc['document_name'],
-                'document_type' => $doc['document_type'],
-                'is_required' => $doc['is_required'] ?? true,
-            ]);
-
-            Document::create(['project_id' => $project->id, 'required_document_id' => $reqDoc->id, 'status' => 'draft']);
-        }
-
-        // Notify supplier users about new project assignment
-        NotificationService::notifyProjectAssigned($project);
-
-        // Log activity for PIC
-        NotificationService::logActivity($request->user()->id, 'project_created', "Created project {$project->project_code}", 'file-text');
-
-        return redirect()->route('projects.show', $project->id);
+        return redirect()->route('projects.index')->with('success', 'Project created successfully');
     }
 
     public function edit($id)
@@ -111,9 +92,6 @@ class ProjectController extends Controller
         $data = $request->validate([
             'project_code' => 'required|unique:projects,project_code,' . $id,
             'project_name' => 'required',
-            'model' => 'required',
-            'part_number' => 'required',
-            'part_name' => 'required',
             'supplier_id' => 'required|exists:suppliers,id',
             'start_date' => 'required|date',
             'due_date' => 'required|date',

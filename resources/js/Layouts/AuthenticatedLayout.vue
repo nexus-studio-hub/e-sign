@@ -13,6 +13,7 @@ import RecentActivity from '@/Components/RecentActivity.vue'
 const page = usePage()
 
 const userRole = computed(() => page.props.auth.user?.role)
+const userRoleLevel = computed(() => page.props.auth.user?.reviewer_role?.level)
 
 const mainMenuItems = computed(() => {
   const items = []
@@ -23,17 +24,12 @@ const mainMenuItems = computed(() => {
       { name: 'Suppliers', href: '/admin/suppliers', icon: Building },
       { name: 'Projects', href: '/projects', icon: FileText },
     )
-  } else if (userRole.value === 'pic_development') {
+  } else if (userRole.value === 'reviewer') {
     items.push(
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Projects', href: '/projects', icon: FileText },
     )
   } else if (userRole.value === 'supplier') {
-    items.push(
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Projects', href: '/projects', icon: FileText },
-    )
-  } else if (userRole.value === 'group_leader' || userRole.value === 'manager') {
     items.push(
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Projects', href: '/projects', icon: FileText },

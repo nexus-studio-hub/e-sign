@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'supplier_id',
     ];
 
@@ -51,6 +52,11 @@ class User extends Authenticatable
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function reviewerRole()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
     public function projects()

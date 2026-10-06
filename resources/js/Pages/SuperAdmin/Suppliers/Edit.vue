@@ -15,7 +15,7 @@ const props = defineProps<Props>()
 
 const form = useForm({
   code: props.supplier.code,
-  name: props.supplier.name,
+  company_name: props.supplier.company_name,
   contact_person: props.supplier.contact_person,
   email: props.supplier.email,
   phone: props.supplier.phone,
@@ -50,9 +50,9 @@ const submit = () => {
               </div>
 
               <div class="space-y-2">
-                <Label for="name">Supplier Name *</Label>
-                <Input id="name" v-model="form.name" required />
-                <div v-if="form.errors.name" class="text-sm text-red-500">{{ form.errors.name }}</div>
+                <Label for="company_name">Company Name *</Label>
+                <Input id="company_name" v-model="form.company_name" required />
+                <div v-if="form.errors.company_name" class="text-sm text-red-500">{{ form.errors.company_name }}</div>
               </div>
 
               <div class="space-y-2">

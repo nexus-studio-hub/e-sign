@@ -12,6 +12,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\RoleController;
 
 Route::get('/', fn() => redirect('/login'));
 
@@ -49,26 +50,40 @@ Route::middleware('auth')->group(function () {
         
         // Supplier Management
         Route::resource('suppliers', SupplierController::class);
+        
+        // Role Management
+        Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
     });
     
     // Projects
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-    Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create')->middleware('role:pic_development');
-    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store')->middleware('role:pic_development');
+    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store')->middleware('role:reviewer');
+    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit')->middleware('role:reviewer');
+    Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update')->middleware('role:reviewer');
+    Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy')->middleware('role:reviewer');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit')->middleware('role:pic_development');
-    Route::put('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update')->middleware('role:pic_development');
-    Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy')->middleware('role:pic_development');
+    
+    // Parts
+    Route::post('/projects/{project}/parts', [\App\Http\Controllers\PartController::class, 'store'])->name('parts.store')->middleware('role:reviewer');
+    Route::get('/parts/{part}', [\App\Http\Controllers\PartController::class, 'show'])->name('parts.show');
+    Route::put('/parts/{part}', [\App\Http\Controllers\PartController::class, 'update'])->name('parts.update')->middleware('role:reviewer');
+    Route::delete('/parts/{part}', [\App\Http\Controllers\PartController::class, 'destroy'])->name('parts.destroy')->middleware('role:reviewer');
+    
+    Route::put('/required-documents/{id}', [\App\Http\Controllers\RequiredDocumentController::class, 'update'])->name('required-documents.update')->middleware('role:reviewer');
+    Route::delete('/required-documents/{id}', [\App\Http\Controllers\RequiredDocumentController::class, 'destroy'])->name('required-documents.destroy')->middleware('role:reviewer');
     
     // Documents
+    Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
     Route::post('/documents/{id}/upload', [DocumentController::class, 'upload'])->name('documents.upload')->middleware('role:supplier');
     Route::post('/documents/{id}/submit', [DocumentController::class, 'submit'])->name('documents.submit')->middleware('role:supplier');
+    Route::post('/documents/{id}/review', [DocumentController::class, 'review'])->name('documents.review')->middleware('role:reviewer');
+    Route::get('/documents/versions/{versionId}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
     Route::get('/documents/versions/{versionId}/download', [DocumentController::class, 'download'])->name('documents.download');
     
     // Reviews
-    Route::get('/reviews/{id}', [ReviewController::class, 'show'])->name('reviews.show')->middleware('role:pic_development,group_leader,manager');
-    Route::post('/reviews/{id}/approve', [ReviewController::class, 'approve'])->name('reviews.approve')->middleware('role:pic_development,group_leader,manager');
-    Route::post('/reviews/{id}/reject', [ReviewController::class, 'reject'])->name('reviews.reject')->middleware('role:pic_development,group_leader,manager');
+    Route::get('/reviews/{id}', [ReviewController::class, 'show'])->name('reviews.show')->middleware('role:reviewer');
+    Route::post('/reviews/{id}/approve', [ReviewController::class, 'approve'])->name('reviews.approve')->middleware('role:reviewer');
+    Route::post('/reviews/{id}/reject', [ReviewController::class, 'reject'])->name('reviews.reject')->middleware('role:reviewer');
 });
 
 

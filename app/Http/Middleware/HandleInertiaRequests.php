@@ -43,6 +43,9 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
+                    'reviewer_role' => $request->user()->role === 'reviewer' 
+                        ? $request->user()->reviewerRole 
+                        : null,
                 ] : null,
             ],
         ];

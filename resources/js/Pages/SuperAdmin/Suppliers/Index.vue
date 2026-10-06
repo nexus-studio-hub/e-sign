@@ -89,7 +89,7 @@ const deleteSupplier = (id: number) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>Company Name</TableHead>
                 <TableHead>Contact Person</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
@@ -101,7 +101,7 @@ const deleteSupplier = (id: number) => {
             <TableBody>
               <TableRow v-for="supplier in suppliers.data" :key="supplier.id">
                 <TableCell class="font-medium">{{ supplier.code }}</TableCell>
-                <TableCell>{{ supplier.name }}</TableCell>
+                <TableCell>{{ supplier.company_name }}</TableCell>
                 <TableCell>{{ supplier.contact_person }}</TableCell>
                 <TableCell>{{ supplier.email }}</TableCell>
                 <TableCell>{{ supplier.phone }}</TableCell>

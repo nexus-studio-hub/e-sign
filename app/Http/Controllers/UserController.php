@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Supplier;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -12,7 +13,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('supplier');
+        $query = User::with(['supplier', 'reviewerRole']);
         
         // Search
         if ($request->has('search') && $request->search) {
@@ -36,7 +37,8 @@ class UserController extends Controller
     public function create()
     {
         $suppliers = Supplier::where('status', 'active')->get();
-        return Inertia::render('SuperAdmin/Users/Create', compact('suppliers'));
+        $roles = Role::orderBy('level')->get();
+        return Inertia::render('SuperAdmin/Users/Create', compact('suppliers', 'roles'));
     }
 
     public function store(Request $request)
@@ -45,7 +47,8 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8',
-            'role' => 'required|in:pic_development,supplier,group_leader,manager',
+            'role' => 'required|in:supplier,reviewer',
+            'role_id' => 'required_if:role,reviewer|nullable|exists:roles,id',
             'supplier_id' => 'required_if:role,supplier|nullable|exists:suppliers,id',
         ]);
         
@@ -64,9 +67,10 @@ class UserController extends Controller
 
     public function edit($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('reviewerRole')->findOrFail($id);
         $suppliers = Supplier::where('status', 'active')->get();
-        return Inertia::render('SuperAdmin/Users/Edit', compact('user', 'suppliers'));
+        $roles = Role::orderBy('level')->get();
+        return Inertia::render('SuperAdmin/Users/Edit', compact('user', 'suppliers', 'roles'));
     }
 
     public function update(Request $request, $id)
@@ -77,7 +81,8 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
             'password' => 'nullable|min:8',
-            'role' => 'required|in:pic_development,supplier,group_leader,manager',
+            'role' => 'required|in:supplier,reviewer',
+            'role_id' => 'required_if:role,reviewer|nullable|exists:roles,id',
             'supplier_id' => 'required_if:role,supplier|nullable|exists:suppliers,id',
             'is_active' => 'boolean',
         ]);

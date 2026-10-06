@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Part;
 use App\Models\Document;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -17,27 +18,49 @@ class DashboardController extends Controller
         switch ($user->role) {
             case 'superadmin':
                 return redirect()->route('admin.dashboard');
-            case 'pic_development':
-                return $this->picDashboard($user);
+            case 'reviewer':
+                return $this->reviewerDashboard($user);
             case 'supplier':
                 return $this->supplierDashboard($user);
-            case 'group_leader':
+            default:
+                abort(403, 'Unauthorized access');
+        }
+    }
+
+    private function reviewerDashboard($user)
+    {
+        // Load user with role relationship
+        $user->load('reviewerRole');
+        
+        if (!$user->reviewerRole) {
+            abort(403, 'No role assigned');
+        }
+        
+        $level = $user->reviewerRole->level;
+        
+        // Route to appropriate dashboard based on level
+        switch ($level) {
+            case 1:
+                return $this->picDashboard($user);
+            case 2:
                 return $this->groupLeaderDashboard($user);
-            case 'manager':
+            case 3:
                 return $this->managerDashboard($user);
+            default:
+                abort(403, 'Invalid role level');
         }
     }
 
     private function picDashboard($user)
     {
         $stats = [
-            'totalProjects' => Project::where('pic_id', $user->id)->count(),
-            'draft' => Document::whereHas('project', fn($q) => $q->where('pic_id', $user->id))->where('status', 'draft')->count(),
-            'submitted' => Document::whereHas('project', fn($q) => $q->where('pic_id', $user->id))->where('status', 'under_pic_review')->count(),
-            'needRevision' => Document::whereHas('project', fn($q) => $q->where('pic_id', $user->id))->where('status', 'need_revision')->count(),
+            'totalProjects' => Project::count(),
+            'draft' => Document::where('status', 'draft')->count(),
+            'submitted' => Document::where('status', 'under_pic_review')->count(),
+            'needRevision' => Document::where('status', 'need_revision')->count(),
         ];
 
-        $projects = Project::where('pic_id', $user->id)->with(['supplier', 'documents'])->latest()->paginate(10);
+        $projects = Project::with(['parts'])->latest()->paginate(10);
 
         return Inertia::render('Dashboard/PicDashboard', compact('stats', 'projects'));
     }
@@ -45,15 +68,15 @@ class DashboardController extends Controller
     private function supplierDashboard($user)
     {
         $stats = [
-            'assignedProjects' => Project::where('supplier_id', $user->supplier_id)->count(),
-            'pendingUpload' => Document::whereHas('project', fn($q) => $q->where('supplier_id', $user->supplier_id))->where('status', 'draft')->count(),
-            'submitted' => Document::whereHas('project', fn($q) => $q->where('supplier_id', $user->supplier_id))->whereIn('status', ['under_pic_review', 'under_group_review', 'under_manager_review'])->count(),
-            'needRevision' => Document::whereHas('project', fn($q) => $q->where('supplier_id', $user->supplier_id))->where('status', 'need_revision')->count(),
+            'assignedProjects' => Part::where('supplier_id', $user->supplier_id)->count(),
+            'pendingUpload' => Document::whereHas('requiredDocument.part', fn($q) => $q->where('supplier_id', $user->supplier_id))->where('status', 'draft')->count(),
+            'submitted' => Document::whereHas('requiredDocument.part', fn($q) => $q->where('supplier_id', $user->supplier_id))->whereIn('status', ['under_pic_review', 'under_group_review', 'under_manager_review'])->count(),
+            'needRevision' => Document::whereHas('requiredDocument.part', fn($q) => $q->where('supplier_id', $user->supplier_id))->where('status', 'need_revision')->count(),
         ];
 
-        $projects = Project::where('supplier_id', $user->supplier_id)->with(['pic', 'documents'])->latest()->paginate(10);
+        $parts = Part::where('supplier_id', $user->supplier_id)->with(['project', 'requiredDocuments.document'])->latest()->paginate(10);
 
-        return Inertia::render('Dashboard/SupplierDashboard', compact('stats', 'projects'));
+        return Inertia::render('Dashboard/SupplierDashboard', compact('stats', 'parts'));
     }
 
     private function groupLeaderDashboard($user)

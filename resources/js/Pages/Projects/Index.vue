@@ -5,8 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Link, usePage, router } from '@inertiajs/vue3'
-import { Plus } from 'lucide-vue-next'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Link, usePage, router, useForm } from '@inertiajs/vue3'
+import { Plus, FolderOpen } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 
 interface Props {
@@ -27,6 +29,12 @@ const props = defineProps<Props>()
 const page = usePage()
 const userRole = page.props.auth.user?.role
 const searchQuery = ref('')
+const showModal = ref(false)
+
+const form = useForm({
+  project_code: '',
+  project_name: '',
+})
 
 const debounceTimer = ref<number | null>(null)
 
@@ -47,6 +55,15 @@ const goToPage = (url: string) => {
   if (url) {
     router.get(url, {}, { preserveState: true })
   }
+}
+
+const submitProject = () => {
+  form.post('/projects', {
+    onSuccess: () => {
+      showModal.value = false
+      form.reset()
+    }
+  })
 }
 
 const getStatusColor = (status: string) => {
@@ -79,12 +96,40 @@ const getStatusText = (status: string) => {
           <p class="text-muted-foreground">Manage all projects</p>
         </div>
         <div class="flex gap-2">
-          <Link v-if="userRole === 'pic_development' || userRole === 'superadmin'" href="/projects/create">
-            <Button>
-              <Plus class="w-4 h-4 mr-2" />
-              New Project
-            </Button>
-          </Link>
+          <Button v-if="userRole === 'reviewer' || userRole === 'superadmin'" @click="showModal = true">
+            <Plus class="w-4 h-4 mr-2" />
+            New Project
+          </Button>
+          
+          <Dialog v-model:open="showModal">
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+              </DialogHeader>
+              <form @submit.prevent="submitProject" class="space-y-4">
+                <div class="space-y-2">
+                  <Label for="project_code">Project Code *</Label>
+                  <Input id="project_code" v-model="form.project_code" required />
+                  <div v-if="form.errors.project_code" class="text-sm text-red-500">{{ form.errors.project_code }}</div>
+                </div>
+                
+                <div class="space-y-2">
+                  <Label for="project_name">Project Name *</Label>
+                  <Input id="project_name" v-model="form.project_name" required />
+                  <div v-if="form.errors.project_name" class="text-sm text-red-500">{{ form.errors.project_name }}</div>
+                </div>
+                
+                <div class="flex gap-2">
+                  <Button type="submit" :disabled="form.processing">
+                    {{ form.processing ? 'Creating...' : 'Create Project' }}
+                  </Button>
+                  <Button type="button" variant="outline" @click="showModal = false">
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -107,27 +152,28 @@ const getStatusText = (status: string) => {
               <TableRow>
                 <TableHead>Project Code</TableHead>
                 <TableHead>Project Name</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>PIC</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead>Parts</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Action</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-for="project in projects.data" :key="project.id">
                 <TableCell class="font-medium">{{ project.project_code }}</TableCell>
                 <TableCell>{{ project.project_name }}</TableCell>
-                <TableCell>{{ project.model }}</TableCell>
-                <TableCell>{{ project.supplier?.name }}</TableCell>
-                <TableCell>{{ project.pic?.name }}</TableCell>
-                <TableCell>{{ project.due_date }}</TableCell>
+                <TableCell>{{ project.parts_count || 0 }}</TableCell>
                 <TableCell>
-                  <Badge :class="getStatusColor(project.status)">{{ getStatusText(project.status) }}</Badge>
+                  <Badge :class="getStatusColor(project.status)">
+                    {{ getStatusText(project.status) }}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <Link :href="`/projects/${project.id}`" class="text-cyan-600 hover:underline">View</Link>
+                  <Link :href="`/projects/${project.id}`">
+                    <Button size="sm" variant="outline">
+                      <FolderOpen class="w-4 h-4 mr-1" />
+                      Open
+                    </Button>
+                  </Link>
                 </TableCell>
               </TableRow>
             </TableBody>

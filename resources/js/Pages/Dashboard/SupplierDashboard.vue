@@ -16,7 +16,7 @@ interface Props {
     submitted: number
     needRevision: number
   }
-  projects: {
+  parts: {
     data: any[]
     current_page: number
     last_page: number
@@ -129,21 +129,23 @@ const goToPage = (url: string) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Project Code</TableHead>
-                <TableHead>Project Name</TableHead>
-                <TableHead>PIC</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Part Number</TableHead>
+                <TableHead>Part Name</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Documents</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="project in projects.data" :key="project.id">
-                <TableCell class="font-medium">{{ project.project_code }}</TableCell>
-                <TableCell>{{ project.project_name }}</TableCell>
-                <TableCell>{{ project.pic?.name }}</TableCell>
-                <TableCell>{{ project.due_date }}</TableCell>
+              <TableRow v-for="part in parts.data" :key="part.id">
+                <TableCell class="font-medium">{{ part.project?.project_name }}</TableCell>
+                <TableCell>{{ part.part_number }}</TableCell>
+                <TableCell>{{ part.part_name }}</TableCell>
+                <TableCell>{{ part.model || '-' }}</TableCell>
+                <TableCell>{{ part.required_documents?.length || 0 }}</TableCell>
                 <TableCell>
-                  <a :href="`/projects/${project.id}`" class="text-cyan-600 hover:underline">View</a>
+                  <a :href="`/parts/${part.id}`" class="text-cyan-600 hover:underline">View</a>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -152,11 +154,11 @@ const goToPage = (url: string) => {
           <!-- Pagination -->
           <div class="flex items-center justify-between mt-4">
             <div class="text-sm text-muted-foreground">
-              Showing {{ projects.from }} to {{ projects.to }} of {{ projects.total }} results
+              Showing {{ parts.from }} to {{ parts.to }} of {{ parts.total }} results
             </div>
             <div class="flex gap-2">
               <Button 
-                v-for="link in projects.links" 
+                v-for="link in parts.links" 
                 :key="link.label"
                 size="sm" 
                 variant="outline"

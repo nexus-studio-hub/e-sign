@@ -7,9 +7,9 @@ use Illuminate\Support\Str;
 
 class Project extends Model
 {
-    protected $fillable = ['project_code', 'project_name', 'model', 'part_number', 'part_name', 'supplier_id', 'pic_id', 'start_date', 'due_date', 'status', 'certificate_token'];
+    protected $fillable = ['project_code', 'project_name', 'status', 'certificate_token'];
 
-    protected $casts = ['start_date' => 'date', 'due_date' => 'date'];
+    protected $casts = [];
 
     protected static function booted()
     {
@@ -20,14 +20,9 @@ class Project extends Model
         });
     }
 
-    public function supplier()
+    public function parts()
     {
-        return $this->belongsTo(Supplier::class);
-    }
-
-    public function pic()
-    {
-        return $this->belongsTo(User::class, 'pic_id');
+        return $this->hasMany(Part::class);
     }
 
     public function requiredDocuments()

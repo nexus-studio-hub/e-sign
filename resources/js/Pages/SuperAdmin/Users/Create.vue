@@ -4,11 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import SearchableSelect from '@/Components/SearchableSelect.vue'
 import { useForm } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+
+interface Role {
+  id: number
+  name: string
+  level: number
+}
 
 interface Props {
   suppliers: any[]
+  roles: Role[]
 }
 
 const props = defineProps<Props>()
@@ -18,15 +26,29 @@ const form = useForm({
   email: '',
   password: '',
   role: '',
+  role_id: '',
   supplier_id: '',
 })
 
 const showSupplierField = ref(false)
+const showRoleField = ref(false)
+
+const roleOptions = computed(() => {
+  return props.roles.map(role => ({
+    value: role.id,
+    label: `Level ${role.level} - ${role.name}`
+  }))
+})
 
 watch(() => form.role, (value) => {
   showSupplierField.value = value === 'supplier'
+  showRoleField.value = value === 'reviewer'
+  
   if (value !== 'supplier') {
     form.supplier_id = ''
+  }
+  if (value !== 'reviewer') {
+    form.role_id = ''
   }
 })
 
@@ -43,15 +65,15 @@ const submit = () => {
         <p class="text-muted-foreground">Add a new user to the system</p>
       </div>
 
-      <Card>
+      <Card class="overflow-visible">
         <CardHeader>
           <CardTitle>User Information</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent class="overflow-visible">
           <form @submit.prevent="submit" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <Label for="name">Name *</Label>
+                <Label for="name">Nama Pegawai *</Label>
                 <Input id="name" v-model="form.name" required />
                 <div v-if="form.errors.name" class="text-sm text-red-500">{{ form.errors.name }}</div>
               </div>
@@ -69,15 +91,23 @@ const submit = () => {
               </div>
 
               <div class="space-y-2">
-                <Label for="role">Role *</Label>
+                <Label for="role">Tipe User *</Label>
                 <select v-model="form.role" id="role" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
-                  <option value="">Select role</option>
-                  <option value="pic_development">PIC Development</option>
+                  <option value="">Pilih tipe user</option>
+                  <option value="reviewer">Reviewer</option>
                   <option value="supplier">Supplier</option>
-                  <option value="group_leader">Group Leader</option>
-                  <option value="manager">Manager</option>
                 </select>
                 <div v-if="form.errors.role" class="text-sm text-red-500">{{ form.errors.role }}</div>
+              </div>
+
+              <div v-if="showRoleField" class="space-y-2 col-span-2">
+                <Label for="role_id">Posisi</Label>
+                <SearchableSelect
+                  v-model="form.role_id"
+                  :options="roleOptions"
+                  placeholder="Pilih posisi"
+                />
+                <div v-if="form.errors.role_id" class="text-sm text-red-500">{{ form.errors.role_id }}</div>
               </div>
 
               <div v-if="showSupplierField" class="space-y-2 col-span-2">
@@ -85,7 +115,7 @@ const submit = () => {
                 <select v-model="form.supplier_id" id="supplier_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
                   <option value="">Select supplier</option>
                   <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                    {{ supplier.name }}
+                    {{ supplier.company_name }}
                   </option>
                 </select>
                 <div v-if="form.errors.supplier_id" class="text-sm text-red-500">{{ form.errors.supplier_id }}</div>

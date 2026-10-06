@@ -9,7 +9,7 @@ import { useForm } from '@inertiajs/vue3'
 
 const form = useForm({
   code: '',
-  name: '',
+  company_name: '',
   contact_person: '',
   email: '',
   phone: '',
@@ -44,9 +44,9 @@ const submit = () => {
               </div>
 
               <div class="space-y-2">
-                <Label for="name">Supplier Name *</Label>
-                <Input id="name" v-model="form.name" required />
-                <div v-if="form.errors.name" class="text-sm text-red-500">{{ form.errors.name }}</div>
+                <Label for="company_name">Company Name *</Label>
+                <Input id="company_name" v-model="form.company_name" required />
+                <div v-if="form.errors.company_name" class="text-sm text-red-500">{{ form.errors.company_name }}</div>
               </div>
 
               <div class="space-y-2">

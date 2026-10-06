@@ -15,7 +15,7 @@ class SupplierController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('company_name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
@@ -35,7 +35,7 @@ class SupplierController extends Controller
     {
         $data = $request->validate([
             'code' => 'required|unique:suppliers',
-            'name' => 'required',
+            'company_name' => 'required',
             'contact_person' => 'required',
             'email' => 'required|email',
             'phone' => 'required',
@@ -60,7 +60,7 @@ class SupplierController extends Controller
         
         $data = $request->validate([
             'code' => 'required|unique:suppliers,code,' . $id,
-            'name' => 'required',
+            'company_name' => 'required',
             'contact_person' => 'required',
             'email' => 'required|email',
             'phone' => 'required',

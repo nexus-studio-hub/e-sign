@@ -16,9 +16,6 @@ const props = defineProps<Props>()
 const form = useForm({
   project_code: props.project.project_code,
   project_name: props.project.project_name,
-  model: props.project.model,
-  part_number: props.project.part_number,
-  part_name: props.project.part_name,
   supplier_id: props.project.supplier_id,
   start_date: props.project.start_date,
   due_date: props.project.due_date,
@@ -58,29 +55,11 @@ const submit = () => {
               </div>
 
               <div class="space-y-2">
-                <Label for="model">Model *</Label>
-                <Input id="model" v-model="form.model" required />
-                <div v-if="form.errors.model" class="text-sm text-red-500">{{ form.errors.model }}</div>
-              </div>
-
-              <div class="space-y-2">
-                <Label for="part_number">Part Number *</Label>
-                <Input id="part_number" v-model="form.part_number" required />
-                <div v-if="form.errors.part_number" class="text-sm text-red-500">{{ form.errors.part_number }}</div>
-              </div>
-
-              <div class="space-y-2">
-                <Label for="part_name">Part Name *</Label>
-                <Input id="part_name" v-model="form.part_name" required />
-                <div v-if="form.errors.part_name" class="text-sm text-red-500">{{ form.errors.part_name }}</div>
-              </div>
-
-              <div class="space-y-2">
                 <Label for="supplier_id">Supplier *</Label>
                 <select v-model="form.supplier_id" id="supplier_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
                   <option value="">Select supplier</option>
                   <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                    {{ supplier.name }}
+                    {{ supplier.company_name }}
                   </option>
                 </select>
                 <div v-if="form.errors.supplier_id" class="text-sm text-red-500">{{ form.errors.supplier_id }}</div>

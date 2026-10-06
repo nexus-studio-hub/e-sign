@@ -57,12 +57,19 @@ const deleteUser = (id: number) => {
 const getRoleBadgeColor = (role: string) => {
   const colors: Record<string, string> = {
     superadmin: 'bg-red-100 text-red-800',
-    pic_development: 'bg-blue-100 text-blue-800',
+    reviewer: 'bg-blue-100 text-blue-800',
     supplier: 'bg-green-100 text-green-800',
-    group_leader: 'bg-purple-100 text-purple-800',
-    manager: 'bg-orange-100 text-orange-800',
   }
   return colors[role] || 'bg-gray-100 text-gray-800'
+}
+
+const getRoleDisplay = (user: any) => {
+  if (user.role === 'superadmin') return 'Super Admin'
+  if (user.role === 'supplier') return 'Supplier'
+  if (user.role === 'reviewer' && user.reviewer_role) {
+    return `${user.reviewer_role.name} (Level ${user.reviewer_role.level})`
+  }
+  return user.role
 }
 </script>
 
@@ -113,7 +120,7 @@ const getRoleBadgeColor = (role: string) => {
                 <TableCell>{{ user.email }}</TableCell>
                 <TableCell>
                   <Badge :class="getRoleBadgeColor(user.role)">
-                    {{ user.role.replace('_', ' ') }}
+                    {{ getRoleDisplay(user) }}
                   </Badge>
                 </TableCell>
                 <TableCell>{{ user.supplier?.name || '-' }}</TableCell>

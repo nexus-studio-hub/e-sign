@@ -13,15 +13,23 @@ class AuthController extends Controller
     {
         // Get all active users for demo accounts
         $demoAccounts = User::where('is_active', true)
+            ->with('reviewerRole')
             ->orderByRaw("CASE 
                 WHEN role = 'superadmin' THEN 1
-                WHEN role = 'pic_development' THEN 2
-                WHEN role = 'group_leader' THEN 3
-                WHEN role = 'manager' THEN 4
-                WHEN role = 'supplier' THEN 5
-                ELSE 6
+                WHEN role = 'reviewer' THEN 2
+                WHEN role = 'supplier' THEN 3
+                ELSE 4
             END")
-            ->get(['email', 'role', 'name']);
+            ->get(['id', 'email', 'role', 'name', 'role_id'])
+            ->map(function($user) {
+                return [
+                    'email' => $user->email,
+                    'role' => $user->role === 'reviewer' && $user->reviewerRole 
+                        ? $user->reviewerRole->name 
+                        : ucfirst($user->role),
+                    'name' => $user->name
+                ];
+            });
         
         return Inertia::render('Auth/Login', [
             'demoAccounts' => $demoAccounts

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Head } from '@inertiajs/vue3'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Head, Link } from '@inertiajs/vue3'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 </script>
 
 <template>
@@ -14,14 +15,43 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
         <p class="text-muted-foreground mt-2">Manage your application settings</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p class="text-sm text-muted-foreground">Settings page coming soon...</p>
-        </CardContent>
-      </Card>
+      <div class="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Role Management</CardTitle>
+            <CardDescription>Kelola role reviewer (PIC, Group Leader, Manager)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/roles">
+              <Button>Manage Roles</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>Kelola user dan assign role</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/users">
+              <Button>Manage Users</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Supplier Management</CardTitle>
+            <CardDescription>Kelola data supplier</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/suppliers">
+              <Button>Manage Suppliers</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   </AuthenticatedLayout>
 </template>
