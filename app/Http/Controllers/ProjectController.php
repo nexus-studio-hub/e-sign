@@ -48,7 +48,7 @@ class ProjectController extends Controller
         if ($user->role === 'supplier') {
             $project->load(['parts' => function($q) use ($user) {
                 $q->where('supplier_id', $user->supplier_id);
-            }]);
+            }, 'parts.supplier', 'parts.requiredDocuments.document.latestVersion']);
         }
         
         $suppliers = Supplier::where('status', 'active')->get();
