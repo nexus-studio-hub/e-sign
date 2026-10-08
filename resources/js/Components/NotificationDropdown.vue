@@ -86,39 +86,33 @@ const markAllAsRead = async () => {
 const handleNotificationClick = async (notif: Notification) => {
   console.log('🎯 Clicked notification:', notif.id, 'read_at:', notif.read_at)
   
-  // Optimistic update - update UI immediately
+  // Mark as read immediately in UI
   const wasUnread = !notif.read_at
   if (wasUnread) {
+    // Find and update in array to trigger reactivity
     const index = notifications.value.findIndex(n => n.id === notif.id)
     if (index !== -1) {
-      notifications.value[index] = {
-        ...notifications.value[index],
-        read_at: new Date().toISOString()
-      }
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
-      console.log('⚡ Optimistic update! New count:', unreadCount.value)
+      notifications.value[index].read_at = new Date().toISOString()
     }
+    // Decrease count
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+    console.log('⚡ UI updated! New count:', unreadCount.value)
   }
   
-  // Call server and check if it succeeded
-  const success = await markAsRead(notif.id)
-  
-  // Rollback if server failed
-  if (!success && wasUnread) {
-    const index = notifications.value.findIndex(n => n.id === notif.id)
-    if (index !== -1) {
-      notifications.value[index] = {
-        ...notifications.value[index],
-        read_at: null
+  // Call server in background
+  markAsRead(notif.id).then(success => {
+    if (!success && wasUnread) {
+      // Rollback if failed
+      const index = notifications.value.findIndex(n => n.id === notif.id)
+      if (index !== -1) {
+        notifications.value[index].read_at = null
       }
       unreadCount.value += 1
       console.log('🔄 Rolled back! Count restored:', unreadCount.value)
     }
-  }
+  })
   
-  // Small delay for UI feedback
-  await new Promise(resolve => setTimeout(resolve, 100))
-  
+  // Close dropdown and navigate
   isOpen.value = false
   if (notif.link) {
     console.log('🔗 Navigating to:', notif.link)

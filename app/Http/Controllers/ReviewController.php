@@ -84,6 +84,8 @@ class ReviewController extends Controller
 
         $document->update(['status' => $newStatus]);
 
+        // Load required relations before notification
+        $document->load(['requiredDocument.part.supplier', 'project']);
         NotificationService::notifyDocumentReviewed($document, $review);
         NotificationService::notifyNextReviewer($document);
         NotificationService::logActivity($user->id, 'review_approved', "Approved {$document->requiredDocument->document_name}", 'check-circle');
@@ -126,6 +128,8 @@ class ReviewController extends Controller
 
         $document->update(['status' => 'need_revision']);
 
+        // Load required relations before notification
+        $document->load(['requiredDocument.part.supplier', 'project']);
         NotificationService::notifyDocumentReviewed($document, $review);
         NotificationService::logActivity($user->id, 'review_rejected', "Rejected {$document->requiredDocument->document_name}", 'x-circle');
 

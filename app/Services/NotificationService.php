@@ -32,13 +32,16 @@ class NotificationService
 
     public static function notifyDocumentReviewed($document, $review)
     {
-        $supplierUsers = $document->project->supplier->users;
+        // Get supplier users through part relationship
+        $supplier = $document->requiredDocument->part->supplier;
+        $supplierUsers = $supplier->users;
+        
         if ($supplierUsers->isEmpty()) return;
 
         $status = $review->status === 'approved' ? 'approved' : 'rejected';
         $title = "Document Reviewed";
         $message = "Your document '{$document->requiredDocument->document_name}' has been {$status} by {$review->reviewer->name}";
-        $link = "/projects/{$document->project_id}";
+        $link = "/documents/{$document->id}";
 
         foreach ($supplierUsers as $supplierUser) {
             self::notify($supplierUser->id, "review_{$status}", $title, $message, $link, [
@@ -52,68 +55,101 @@ class NotificationService
 
     public static function notifyDocumentSubmitted($document)
     {
-        $pic = $document->project->pic;
-        if (!$pic) return;
+        // Get all reviewers with level 1
+        $level1Reviewers = \App\Models\User::where('role', 'reviewer')
+            ->whereHas('reviewerRole', function($q) {
+                $q->where('level', 1);
+            })
+            ->get();
+        
+        if ($level1Reviewers->isEmpty()) return;
 
-        $supplierName = $document->project->supplier->name;
+        // Get supplier through relationship chain
+        $supplier = $document->requiredDocument->part->supplier;
+        $supplierName = $supplier->company_name;
         $documentName = $document->requiredDocument->document_name;
         
         $title = "Document Ready for Review";
         $message = "↓ in: {$supplierName} - {$documentName}";
-        $link = "/reviews/{$document->id}";
+        $link = "/documents/{$document->id}";
 
-        self::notify($pic->id, 'document_submitted', $title, $message, $link, [
-            'document_id' => $document->id,
-            'project_id' => $document->project_id,
-        ]);
-        
-        self::logActivity($pic->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
+        // Notify ALL level 1 reviewers
+        foreach ($level1Reviewers as $reviewer) {
+            self::notify($reviewer->id, 'document_submitted', $title, $message, $link, [
+                'document_id' => $document->id,
+                'supplier_id' => $supplier->id,
+            ]);
+            
+            self::logActivity($reviewer->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
+        }
     }
 
-    public static function notifyProjectAssigned($project)
+    public static function notifyPartAssigned($part)
     {
-        $supplierUsers = $project->supplier->users;
+        // Get all users from the supplier
+        $supplier = $part->supplier;
+        $supplierUsers = $supplier->users;
+        
         if ($supplierUsers->isEmpty()) return;
 
-        $title = "New Project Assigned";
-        $message = "You have been assigned to project {$project->project_code}: {$project->project_name}";
-        $link = "/projects/{$project->id}";
+        $project = $part->project;
+        $title = "New Part Assigned";
+        $message = "Part {$part->part_number} ({$part->part_name}) has been assigned to {$supplier->company_name} in project {$project->project_code}";
+        $link = "/parts/{$part->id}";
 
+        // Notify ALL supplier users
         foreach ($supplierUsers as $user) {
-            self::notify($user->id, 'project_assigned', $title, $message, $link, [
+            self::notify($user->id, 'part_assigned', $title, $message, $link, [
+                'part_id' => $part->id,
                 'project_id' => $project->id,
+                'supplier_id' => $supplier->id,
             ]);
 
-            self::logActivity($user->id, 'project_assigned', "Assigned to project {$project->project_code}", 'file-text');
+            self::logActivity($user->id, 'part_assigned', "Assigned to part {$part->part_number} in project {$project->project_code}", 'file-text');
         }
     }
 
     public static function notifyNextReviewer($document)
     {
         $status = $document->status;
-        $reviewer = null;
+        $reviewers = collect();
 
-        // Determine next reviewer based on status
+        // Determine next reviewers based on status using LEVEL
         if ($status === 'under_group_review') {
-            $reviewer = \App\Models\User::where('role', 'group_leader')->first();
+            // Get all reviewers with level 2
+            $reviewers = \App\Models\User::where('role', 'reviewer')
+                ->whereHas('reviewerRole', function($q) {
+                    $q->where('level', 2);
+                })
+                ->get();
         } elseif ($status === 'under_manager_review') {
-            $reviewer = \App\Models\User::where('role', 'manager')->first();
+            // Get all reviewers with level 3
+            $reviewers = \App\Models\User::where('role', 'reviewer')
+                ->whereHas('reviewerRole', function($q) {
+                    $q->where('level', 3);
+                })
+                ->get();
         }
 
-        if (!$reviewer) return;
+        if ($reviewers->isEmpty()) return;
 
-        $supplierName = $document->project->supplier->name;
+        // Get supplier through relationship chain
+        $supplier = $document->requiredDocument->part->supplier;
+        $supplierName = $supplier->company_name;
         $documentName = $document->requiredDocument->document_name;
         
         $title = "Document Ready for Review";
         $message = "↓ in: {$supplierName} - {$documentName}";
-        $link = "/reviews/{$document->id}";
+        $link = "/documents/{$document->id}";
 
-        self::notify($reviewer->id, 'document_submitted', $title, $message, $link, [
-            'document_id' => $document->id,
-            'project_id' => $document->project_id,
-        ]);
-        
-        self::logActivity($reviewer->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
+        // Notify ALL reviewers at this level
+        foreach ($reviewers as $reviewer) {
+            self::notify($reviewer->id, 'document_submitted', $title, $message, $link, [
+                'document_id' => $document->id,
+                'supplier_id' => $supplier->id,
+            ]);
+            
+            self::logActivity($reviewer->id, 'document_received', "↓ in: {$supplierName} - {$documentName}", 'file-text');
+        }
     }
 }

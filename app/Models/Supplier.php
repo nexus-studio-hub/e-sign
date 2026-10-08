@@ -13,8 +13,8 @@ class Supplier extends Model
         return $this->hasMany(User::class);
     }
 
-    public function projects()
+    public function parts()
     {
-        return $this->hasMany(Project::class);
+        return $this->hasMany(Part::class);
     }
 }

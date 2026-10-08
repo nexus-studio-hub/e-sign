@@ -20,7 +20,7 @@ class Document extends Model
 
     public function versions()
     {
-        return $this->hasMany(DocumentVersion::class);
+        return $this->hasMany(DocumentVersion::class)->orderBy('version_number', 'desc');
     }
 
     public function reviews()
@@ -31,5 +31,10 @@ class Document extends Model
     public function latestVersion()
     {
         return $this->hasOne(DocumentVersion::class)->latestOfMany('version_number');
+    }
+
+    public function getSupplier()
+    {
+        return $this->requiredDocument->part->supplier;
     }
 }

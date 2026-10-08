@@ -93,7 +93,7 @@ const deleteSupplier = (id: number) => {
                 <TableHead>Contact Person</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Projects</TableHead>
+                <TableHead>Parts</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -105,7 +105,7 @@ const deleteSupplier = (id: number) => {
                 <TableCell>{{ supplier.contact_person }}</TableCell>
                 <TableCell>{{ supplier.email }}</TableCell>
                 <TableCell>{{ supplier.phone }}</TableCell>
-                <TableCell>{{ supplier.projects_count }}</TableCell>
+                <TableCell>{{ supplier.parts_count }}</TableCell>
                 <TableCell>
                   <Badge :class="supplier.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                     {{ supplier.status }}

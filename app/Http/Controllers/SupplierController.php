@@ -10,7 +10,7 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Supplier::withCount('projects');
+        $query = Supplier::withCount('parts');
         
         if ($request->has('search') && $request->search) {
             $search = $request->search;

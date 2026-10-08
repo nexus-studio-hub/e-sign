@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\RequiredDocument;
 use App\Models\Document;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -61,6 +62,10 @@ class PartController extends Controller
             ]);
         }
 
+        // Notify supplier users about new part assignment
+        $part->load(['supplier', 'project']);
+        NotificationService::notifyPartAssigned($part);
+
         return back()->with('success', 'Part created successfully');
     }
 
@@ -75,7 +80,16 @@ class PartController extends Controller
             'supplier_id' => 'required|exists:suppliers,id',
         ]);
         
+        // Check if supplier changed
+        $supplierChanged = $part->supplier_id != $data['supplier_id'];
+        
         $part->update($data);
+        
+        // Notify new supplier if supplier changed
+        if ($supplierChanged) {
+            $part->load(['supplier', 'project']);
+            NotificationService::notifyPartAssigned($part);
+        }
         
         return back()->with('success', 'Part updated successfully');
     }

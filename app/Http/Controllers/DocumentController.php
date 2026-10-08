@@ -38,59 +38,36 @@ class DocumentController extends Controller
         
         \Log::info('File received', ['file_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
         
-        // Check if version already exists
-        $existingVersion = DocumentVersion::where('document_id', $document->id)
-            ->where('version_number', 1)
-            ->first();
+        // Get next version number
+        $latestVersion = DocumentVersion::where('document_id', $document->id)
+            ->max('version_number');
+        $newVersion = $latestVersion ? $latestVersion + 1 : 1;
         
-        if ($existingVersion) {
-            \Log::info('Replacing existing version', ['version_id' => $existingVersion->id]);
-            
-            // Replace existing file
-            $fileName = $existingVersion->file_name;
-            $path = $existingVersion->file_path;
-            
-            // Delete old file
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-                \Log::info('Old file deleted', ['path' => $path]);
-            }
-            
-            // Store new file with same name
-            $storedPath = $file->storeAs('documents', $fileName, 'public');
-            \Log::info('New file stored', ['file_name' => $fileName, 'stored_path' => $storedPath, 'actual_size' => Storage::disk('public')->size($storedPath)]);
-            
-            // Update version record
-            $existingVersion->update([
-                'file_size' => $file->getSize(),
-                'uploaded_by' => $request->user()->id,
-                'uploaded_at' => now(),
-            ]);
-            \Log::info('Version record updated');
-        } else {
-            \Log::info('Creating first version');
-            
-            // Create first version
-            $version = 1;
-            $fileName = $document->project->project_code . '_' . $document->requiredDocument->document_type . '_v' . $version . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('documents', $fileName, 'public');
+        \Log::info('Creating new version', ['version' => $newVersion]);
+        
+        // Create new version file
+        $fileName = $document->project->project_code . '_' . $document->requiredDocument->document_type . '_v' . $newVersion . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('documents', $fileName, 'public');
 
-            DocumentVersion::create([
-                'document_id' => $document->id,
-                'version_number' => $version,
-                'file_name' => $fileName,
-                'file_path' => $path,
-                'file_size' => $file->getSize(),
-                'uploaded_by' => $request->user()->id,
-                'uploaded_at' => now(),
-            ]);
+        DocumentVersion::create([
+            'document_id' => $document->id,
+            'version_number' => $newVersion,
+            'file_name' => $fileName,
+            'file_path' => $path,
+            'file_size' => $file->getSize(),
+            'uploaded_by' => $request->user()->id,
+            'uploaded_at' => now(),
+        ]);
 
-            $document->update(['current_version' => $version]);
-        }
+        $document->update(['current_version' => $newVersion]);
+        \Log::info('Version created successfully', ['version' => $newVersion, 'file' => $fileName]);
 
         // Auto-submit for review
         if ($document->status === 'draft' || $document->status === 'need_revision') {
             $document->update(['status' => 'under_pic_review']);
+            
+            // Load required relations before notification
+            $document->load(['requiredDocument.part.supplier', 'project']);
             NotificationService::notifyDocumentSubmitted($document);
             \Log::info('Auto-submitted for review');
         }
@@ -106,6 +83,8 @@ class DocumentController extends Controller
         $document = Document::findOrFail($id);
         $document->update(['status' => 'under_pic_review']);
 
+        // Load required relations before notification
+        $document->load(['requiredDocument.part.supplier', 'project']);
         NotificationService::notifyDocumentSubmitted($document);
         NotificationService::logActivity(auth()->id(), 'document_submitted', "Submitted {$document->requiredDocument->document_name}", 'upload');
 
