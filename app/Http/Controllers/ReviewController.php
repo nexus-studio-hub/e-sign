@@ -10,29 +10,73 @@ use Inertia\Inertia;
 
 class ReviewController extends Controller
 {
+    private function validateSequentialApproval($document, $reviewerLevel)
+    {
+        // Level 1 can always review
+        if ($reviewerLevel == 1) {
+            return true;
+        }
+        
+        // Level 2 needs Level 1 approval
+        if ($reviewerLevel == 2) {
+            $level1Approved = Review::where('document_id', $document->id)
+                ->where('document_version_id', $document->latestVersion->id)
+                ->where('reviewer_role', 'pic_development')
+                ->where('status', 'approved')
+                ->exists();
+            
+            if (!$level1Approved) {
+                throw new \Exception('Level 1 must approve this document first');
+            }
+        }
+        
+        // Level 3 needs Level 2 approval
+        if ($reviewerLevel == 3) {
+            $level2Approved = Review::where('document_id', $document->id)
+                ->where('document_version_id', $document->latestVersion->id)
+                ->where('reviewer_role', 'group_leader')
+                ->where('status', 'approved')
+                ->exists();
+            
+            if (!$level2Approved) {
+                throw new \Exception('Level 2 must approve this document first');
+            }
+        }
+        
+        return true;
+    }
+
     public function show($id)
     {
-        $document = Document::with(['project', 'requiredDocument', 'latestVersion'])->findOrFail($id);
+        $document = Document::with([
+            'project', 
+            'requiredDocument.part', 
+            'latestVersion',
+            'versions.uploader'
+        ])->findOrFail($id);
         
-        // Get ALL reviews separately with explicit query
+        // Get ALL reviews with reviewer and document version
         $allReviews = Review::where('document_id', $id)
-            ->with('reviewer')
-            ->orderBy('reviewed_at', 'asc')
+            ->with(['reviewer.reviewerRole', 'documentVersion'])
+            ->orderBy('reviewed_at', 'desc')
             ->get()
             ->map(function($review) {
                 return [
                     'id' => $review->id,
                     'document_id' => $review->document_id,
+                    'document_version_id' => $review->document_version_id,
                     'reviewer_id' => $review->reviewer_id,
                     'reviewer_role' => $review->reviewer_role,
                     'status' => $review->status,
                     'comment' => $review->comment,
-                    'reviewed_at' => $review->reviewed_at->format('d M Y, H:i'),
+                    'reviewed_at' => $review->reviewed_at?->format('Y-m-d H:i:s'),
                     'reviewer' => [
                         'id' => $review->reviewer->id,
                         'name' => $review->reviewer->name,
                         'email' => $review->reviewer->email,
-                        'role' => $review->reviewer->role,
+                    ],
+                    'document_version' => [
+                        'version_number' => $review->documentVersion?->version_number,
                     ],
                 ];
             })
@@ -41,7 +85,6 @@ class ReviewController extends Controller
         return Inertia::render('Documents/Review', [
             'document' => $document,
             'allReviews' => $allReviews,
-            '_timestamp' => now()->timestamp,
         ]);
     }
 
@@ -50,15 +93,35 @@ class ReviewController extends Controller
         $document = Document::findOrFail($id);
         $user = $request->user();
 
+        // Validate sequential approval
+        try {
+            $this->validateSequentialApproval($document, $user->reviewerRole->level);
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        // Check if document is at correct status for this reviewer level
+        $expectedStatus = match($user->reviewerRole->level) {
+            1 => 'under_pic_review',
+            2 => 'under_group_review',
+            3 => 'under_manager_review',
+            default => null,
+        };
+
+        if ($document->status !== $expectedStatus) {
+            return back()->with('error', 'Document is not at your review level');
+        }
+
         // Check if review already exists
         $review = Review::where('document_id', $document->id)
             ->where('reviewer_id', $user->id)
-            ->where('reviewer_role', $user->role)
+            ->where('reviewer_role', $user->reviewerRole->code)
             ->first();
 
         if ($review) {
             // Update existing review
             $review->update([
+                'document_version_id' => $document->latestVersion->id,
                 'status' => 'approved',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),
@@ -69,14 +132,14 @@ class ReviewController extends Controller
                 'document_id' => $document->id,
                 'document_version_id' => $document->latestVersion->id,
                 'reviewer_id' => $user->id,
-                'reviewer_role' => $user->role,
+                'reviewer_role' => $user->reviewerRole->code,
                 'status' => 'approved',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),
             ]);
         }
 
-        $newStatus = match($user->role) {
+        $newStatus = match($user->reviewerRole->code) {
             'pic_development' => 'under_group_review',
             'group_leader' => 'under_manager_review',
             'manager' => 'complete',
@@ -86,29 +149,56 @@ class ReviewController extends Controller
 
         // Load required relations before notification
         $document->load(['requiredDocument.part.supplier', 'project']);
-        NotificationService::notifyDocumentReviewed($document, $review);
-        NotificationService::notifyNextReviewer($document);
+        
+        // Send notifications based on new status
+        if ($newStatus === 'complete') {
+            // Final approval (Level 3) - notify supplier
+            NotificationService::notifyFinalApproval($document);
+        } else {
+            // Notify next level reviewers only
+            NotificationService::notifyNextReviewer($document);
+        }
+        
         NotificationService::logActivity($user->id, 'review_approved', "Approved {$document->requiredDocument->document_name}", 'check-circle');
 
-        return redirect("/projects/{$document->project_id}")->with('success', 'Document approved');
+        $partId = $document->requiredDocument->part_id;
+        return redirect("/parts/{$partId}")->with('success', 'Document approved');
     }
 
     public function reject(Request $request, $id)
     {
-        $request->validate(['comment' => 'required']);
-
         $document = Document::findOrFail($id);
         $user = $request->user();
+
+        // Validate sequential approval
+        try {
+            $this->validateSequentialApproval($document, $user->reviewerRole->level);
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        // Check if document is at correct status for this reviewer level
+        $expectedStatus = match($user->reviewerRole->level) {
+            1 => 'under_pic_review',
+            2 => 'under_group_review',
+            3 => 'under_manager_review',
+            default => null,
+        };
+
+        if ($document->status !== $expectedStatus) {
+            return back()->with('error', 'Document is not at your review level');
+        }
 
         // Check if review already exists
         $review = Review::where('document_id', $document->id)
             ->where('reviewer_id', $user->id)
-            ->where('reviewer_role', $user->role)
+            ->where('reviewer_role', $user->reviewerRole->code)
             ->first();
 
         if ($review) {
             // Update existing review
             $review->update([
+                'document_version_id' => $document->latestVersion->id,
                 'status' => 'rejected',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),
@@ -119,7 +209,7 @@ class ReviewController extends Controller
                 'document_id' => $document->id,
                 'document_version_id' => $document->latestVersion->id,
                 'reviewer_id' => $user->id,
-                'reviewer_role' => $user->role,
+                'reviewer_role' => $user->reviewerRole->code,
                 'status' => 'rejected',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),
@@ -133,6 +223,7 @@ class ReviewController extends Controller
         NotificationService::notifyDocumentReviewed($document, $review);
         NotificationService::logActivity($user->id, 'review_rejected', "Rejected {$document->requiredDocument->document_name}", 'x-circle');
 
-        return redirect("/projects/{$document->project_id}")->with('success', 'Document rejected');
+        $partId = $document->requiredDocument->part_id;
+        return redirect("/parts/{$partId}")->with('success', 'Document rejected');
     }
 }

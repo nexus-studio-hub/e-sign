@@ -79,8 +79,11 @@ const submitUpload = () => {
 }
 
 const submitReview = (status: string) => {
-  reviewForm.status = status
-  reviewForm.post(`/documents/${props.document.id}/review`, {
+  const route = status === 'approved' 
+    ? `/reviews/${props.document.id}/approve`
+    : `/reviews/${props.document.id}/reject`
+  
+  reviewForm.post(route, {
     onSuccess: () => {
       reviewForm.reset()
     }
@@ -243,7 +246,7 @@ const formatFileSize = (bytes: number) => {
         </Card>
       </div>
 
-      <Card v-if="userRole === 'supplier' && document.status !== 'approved'">
+      <Card v-if="userRole === 'supplier' && (document.status === 'draft' || document.status === 'need_revision')">
         <CardHeader>
           <CardTitle>Upload Document</CardTitle>
         </CardHeader>
@@ -260,7 +263,7 @@ const formatFileSize = (bytes: number) => {
             
             <Button type="submit" :disabled="!uploadForm.file || uploadForm.processing">
               <Upload class="w-4 h-4 mr-2" />
-              {{ uploadForm.processing ? 'Uploading...' : 'Upload For Review' }}
+              {{ uploadForm.processing ? 'Uploading...' : (document.status === 'need_revision' ? 'Upload Revision' : 'Upload For Review') }}
             </Button>
           </form>
         </CardContent>

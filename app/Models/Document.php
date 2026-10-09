@@ -25,7 +25,7 @@ class Document extends Model
 
     public function reviews()
     {
-        return $this->hasMany(DocumentReview::class)->orderBy('created_at', 'desc');
+        return $this->hasMany(Review::class)->orderBy('created_at', 'desc');
     }
 
     public function latestVersion()

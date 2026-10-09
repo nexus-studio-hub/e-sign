@@ -77,9 +77,9 @@ class SupplierController extends Controller
     {
         $supplier = Supplier::findOrFail($id);
         
-        // Check if supplier has projects
-        if ($supplier->projects()->count() > 0) {
-            return back()->with('error', 'Cannot delete supplier with existing projects');
+        // Check if supplier has parts
+        if ($supplier->parts()->count() > 0) {
+            return back()->with('error', 'Cannot delete supplier with existing parts');
         }
         
         $supplier->delete();

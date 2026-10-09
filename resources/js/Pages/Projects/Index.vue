@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Link, usePage, router, useForm } from '@inertiajs/vue3'
-import { Plus, FolderOpen } from 'lucide-vue-next'
+import { Plus, FolderOpen, Trash2 } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 
 interface Props {
@@ -84,6 +84,14 @@ const getStatusText = (status: string) => {
     cancelled: 'Cancelled'
   }
   return texts[status] || status
+}
+
+const deleteProject = (projectId: number, projectName: string) => {
+  if (confirm(`Are you sure you want to delete project "${projectName}"? This will delete all parts, documents, reviews, and files. This action cannot be undone.`)) {
+    router.delete(`/projects/${projectId}`, {
+      preserveScroll: true
+    })
+  }
 }
 </script>
 
@@ -168,12 +176,22 @@ const getStatusText = (status: string) => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Link :href="`/projects/${project.id}`">
-                    <Button size="sm" variant="outline">
-                      <FolderOpen class="w-4 h-4 mr-1" />
-                      Open
+                  <div class="flex gap-2">
+                    <Link :href="`/projects/${project.id}`">
+                      <Button size="sm" variant="outline">
+                        <FolderOpen class="w-4 h-4 mr-1" />
+                        Open
+                      </Button>
+                    </Link>
+                    <Button 
+                      v-if="userRole === 'superadmin'"
+                      size="sm" 
+                      variant="destructive"
+                      @click="deleteProject(project.id, project.project_name)"
+                    >
+                      <Trash2 class="w-4 h-4" />
                     </Button>
-                  </Link>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>

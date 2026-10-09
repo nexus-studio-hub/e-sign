@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Link, router } from '@inertiajs/vue3'
@@ -16,6 +16,8 @@ interface Notification {
 const notifications = ref<Notification[]>([])
 const unreadCount = ref(0)
 const isOpen = ref(false)
+const isUpdating = ref(false)
+let pollingInterval: number | null = null
 
 const fetchNotifications = async () => {
   try {
@@ -26,7 +28,18 @@ const fetchNotifications = async () => {
       }
     })
     const data = await response.json()
-    notifications.value = data.notifications
+    
+    // Merge: Keep local read_at if server hasn't updated yet
+    const mergedNotifications = data.notifications.map((serverNotif: Notification) => {
+      const localNotif = notifications.value.find(n => n.id === serverNotif.id)
+      if (localNotif && localNotif.read_at && !serverNotif.read_at) {
+        // Local marked as read but server hasn't updated yet - keep local
+        return { ...serverNotif, read_at: localNotif.read_at }
+      }
+      return serverNotif
+    })
+    
+    notifications.value = mergedNotifications
     unreadCount.value = data.unread_count
   } catch (error) {
     console.error('Failed to fetch notifications:', error)
@@ -63,8 +76,9 @@ const markAsRead = async (id: number): Promise<boolean> => {
 }
 
 const markAllAsRead = async () => {
+  isUpdating.value = true
   try {
-    await fetch('/notifications/read-all', { 
+    const response = await fetch('/notifications/read-all', {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -73,50 +87,60 @@ const markAllAsRead = async () => {
       }
     })
     
-    // Update local state immediately
-    notifications.value.forEach(notif => {
-      notif.read_at = new Date().toISOString()
-    })
+    if (!response.ok) {
+      console.error('Failed to mark all as read:', response.status)
+      return
+    }
+    
+    notifications.value = notifications.value.map(notif => ({
+      ...notif,
+      read_at: new Date().toISOString()
+    }))
     unreadCount.value = 0
+    
+    await fetchNotifications()
   } catch (error) {
     console.error('Failed to mark all as read:', error)
+  } finally {
+    isUpdating.value = false
   }
 }
 
 const handleNotificationClick = async (notif: Notification) => {
-  console.log('🎯 Clicked notification:', notif.id, 'read_at:', notif.read_at)
-  
-  // Mark as read immediately in UI
-  const wasUnread = !notif.read_at
-  if (wasUnread) {
-    // Find and update in array to trigger reactivity
-    const index = notifications.value.findIndex(n => n.id === notif.id)
-    if (index !== -1) {
-      notifications.value[index].read_at = new Date().toISOString()
+  isUpdating.value = true
+  try {
+    console.log('🎯 Clicked notification:', notif.id, 'read_at:', notif.read_at)
+    
+    const wasUnread = !notif.read_at
+    if (wasUnread) {
+      notifications.value = notifications.value.map(n => 
+        n.id === notif.id 
+          ? { ...n, read_at: new Date().toISOString() }
+          : n
+      )
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+      console.log('⚡ UI updated! New count:', unreadCount.value)
     }
-    // Decrease count
-    unreadCount.value = Math.max(0, unreadCount.value - 1)
-    console.log('⚡ UI updated! New count:', unreadCount.value)
-  }
-  
-  // Call server in background
-  markAsRead(notif.id).then(success => {
-    if (!success && wasUnread) {
-      // Rollback if failed
-      const index = notifications.value.findIndex(n => n.id === notif.id)
-      if (index !== -1) {
-        notifications.value[index].read_at = null
+    
+    markAsRead(notif.id).then(success => {
+      if (!success && wasUnread) {
+        notifications.value = notifications.value.map(n =>
+          n.id === notif.id
+            ? { ...n, read_at: null }
+            : n
+        )
+        unreadCount.value += 1
+        console.log('🔄 Rolled back! Count restored:', unreadCount.value)
       }
-      unreadCount.value += 1
-      console.log('🔄 Rolled back! Count restored:', unreadCount.value)
+    })
+    
+    isOpen.value = false
+    if (notif.link) {
+      console.log('🔗 Navigating to:', notif.link)
+      router.visit(notif.link)
     }
-  })
-  
-  // Close dropdown and navigate
-  isOpen.value = false
-  if (notif.link) {
-    console.log('🔗 Navigating to:', notif.link)
-    router.visit(notif.link)
+  } finally {
+    isUpdating.value = false
   }
 }
 
@@ -135,9 +159,25 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString()
 }
 
+const startPolling = () => {
+  if (pollingInterval) return
+  pollingInterval = setInterval(() => {
+    if (!isOpen.value && !isUpdating.value) {
+      fetchNotifications()
+    }
+  }, 30000)
+}
+
 onMounted(() => {
   fetchNotifications()
-  setInterval(fetchNotifications, 30000)
+  startPolling()
+})
+
+onUnmounted(() => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
 })
 </script>
 

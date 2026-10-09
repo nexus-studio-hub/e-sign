@@ -22,6 +22,11 @@ class DocumentController extends Controller
             'reviews.reviewer'
         ])->findOrFail($id);
 
+        // Redirect reviewers to review page (has lock UI and proper validation)
+        if (auth()->check() && auth()->user()->role === 'reviewer') {
+            return redirect()->route('reviews.show', $id);
+        }
+
         return Inertia::render('Documents/Show', [
             'document' => $document
         ]);
@@ -113,40 +118,5 @@ class DocumentController extends Controller
         }
         
         return response()->file($filePath);
-    }
-
-    public function review(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:approved,need_revision',
-            'comment' => 'nullable|string'
-        ]);
-
-        $document = Document::findOrFail($id);
-        $user = $request->user();
-
-        DocumentReview::create([
-            'document_id' => $document->id,
-            'reviewer_id' => $user->id,
-            'status' => $request->status,
-            'comment' => $request->comment,
-        ]);
-
-        if ($request->status === 'approved') {
-            $reviewerRole = $user->reviewerRole;
-            if ($reviewerRole->level == 3) {
-                $document->update(['status' => 'approved']);
-            } elseif ($reviewerRole->level == 2) {
-                $document->update(['status' => 'under_manager_review']);
-            } elseif ($reviewerRole->level == 1) {
-                $document->update(['status' => 'under_group_review']);
-            }
-        } else {
-            $document->update(['status' => 'need_revision']);
-        }
-
-        NotificationService::logActivity($user->id, 'document_reviewed', "Reviewed {$document->requiredDocument->document_name}", 'review');
-
-        return back()->with('success', 'Review submitted successfully');
     }
 }

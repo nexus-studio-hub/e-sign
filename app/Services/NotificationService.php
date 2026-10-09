@@ -109,6 +109,27 @@ class NotificationService
         }
     }
 
+    public static function notifyFinalApproval($document)
+    {
+        // Notify supplier when Level 3 approves (final approval)
+        $supplier = $document->requiredDocument->part->supplier;
+        $supplierUsers = $supplier->users;
+        
+        if ($supplierUsers->isEmpty()) return;
+
+        $title = "Document Fully Approved";
+        $message = "Your document '{$document->requiredDocument->document_name}' has been fully approved and is now complete";
+        $link = "/documents/{$document->id}";
+
+        foreach ($supplierUsers as $user) {
+            self::notify($user->id, 'document_approved', $title, $message, $link, [
+                'document_id' => $document->id,
+            ]);
+
+            self::logActivity($user->id, 'document_approved', "Document {$document->requiredDocument->document_name} fully approved", 'check-circle');
+        }
+    }
+
     public static function notifyNextReviewer($document)
     {
         $status = $document->status;
