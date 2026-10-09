@@ -152,6 +152,15 @@ const reject = () => {
   })
 }
 
+const getReviewerRoleName = (roleCode: string) => {
+  const roleNames: Record<string, string> = {
+    pic_development: 'PIC Development',
+    group_leader: 'Group Leader',
+    manager: 'Manager'
+  }
+  return roleNames[roleCode] || roleCode
+}
+
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800',
@@ -343,7 +352,7 @@ const getStatusText = (status: string) => {
                     {{ review.status }}
                   </Badge>
                     <span class="font-medium">{{ review.reviewer?.name }}</span>
-                    <span class="text-sm text-gray-500 ml-2">({{ review.reviewer_role }})</span>
+                    <span class="text-sm text-gray-500 ml-2">({{ getReviewerRoleName(review.reviewer_role) }})</span>
                     <Badge variant="outline" class="ml-2 text-xs">
                       v{{ review.document_version?.version_number || '?' }}
                     </Badge>

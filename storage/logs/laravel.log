@@ -4600,3 +4600,27 @@ DETAIL:  Failing row contains (1, 5, 5, 3, null, approved, null, 2026-10-09 12:4
 [2026-10-09 14:40:56] local.INFO: Version created successfully {"version":4,"file":"asdaf_PPAP_v4.pdf"} 
 [2026-10-09 14:40:56] local.INFO: Auto-submitted for review  
 [2026-10-09 14:40:56] local.INFO: Upload completed successfully  
+[2026-10-09 16:29:54] local.INFO: Upload started {"document_id":"25","user_id":8} 
+[2026-10-09 16:29:54] local.INFO: File received {"file_name":"test.pdf","size":550} 
+[2026-10-09 16:29:54] local.INFO: Creating new version {"version":1} 
+[2026-10-09 16:29:54] local.INFO: Version created successfully {"version":1,"file":"98123123789_PPAP_v1.pdf"} 
+[2026-10-09 16:29:54] local.INFO: Auto-submitted for review  
+[2026-10-09 16:29:54] local.INFO: Upload completed successfully  
+[2026-10-09 16:31:50] local.INFO: Upload started {"document_id":"26","user_id":8} 
+[2026-10-09 16:31:50] local.INFO: File received {"file_name":"003-Prof-Zetta-08-2026-Bapak Kyle .pdf","size":219420} 
+[2026-10-09 16:31:50] local.INFO: Creating new version {"version":1} 
+[2026-10-09 16:31:50] local.INFO: Version created successfully {"version":1,"file":"98123123789_FMEA_v1.pdf"} 
+[2026-10-09 16:31:50] local.INFO: Auto-submitted for review  
+[2026-10-09 16:31:50] local.INFO: Upload completed successfully  
+[2026-10-09 16:33:20] local.INFO: Upload started {"document_id":"26","user_id":8} 
+[2026-10-09 16:33:20] local.INFO: File received {"file_name":"test.pdf","size":550} 
+[2026-10-09 16:33:20] local.INFO: Creating new version {"version":2} 
+[2026-10-09 16:33:20] local.INFO: Version created successfully {"version":2,"file":"98123123789_FMEA_v2.pdf"} 
+[2026-10-09 16:33:20] local.INFO: Auto-submitted for review  
+[2026-10-09 16:33:20] local.INFO: Upload completed successfully  
+[2026-10-09 16:36:26] local.INFO: Upload started {"document_id":"25","user_id":8} 
+[2026-10-09 16:36:26] local.INFO: File received {"file_name":"test.pdf","size":550} 
+[2026-10-09 16:36:26] local.INFO: Creating new version {"version":2} 
+[2026-10-09 16:36:26] local.INFO: Version created successfully {"version":2,"file":"98123123789_PPAP_v2.pdf"} 
+[2026-10-09 16:36:26] local.INFO: Auto-submitted for review  
+[2026-10-09 16:36:27] local.INFO: Upload completed successfully  

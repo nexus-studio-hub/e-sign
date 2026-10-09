@@ -46,64 +46,48 @@ const fetchNotifications = async () => {
   }
 }
 
-const markAsRead = async (id: number): Promise<boolean> => {
+const markAsRead = (id: number): Promise<boolean> => {
   console.log('🔵 markAsRead START:', id)
-  try {
-    const response = await fetch(`/notifications/${id}/read`, { 
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+  return new Promise((resolve) => {
+    router.post(`/notifications/${id}/read`, {}, {
+      preserveState: true,
+      preserveScroll: true,
+      only: [],
+      onSuccess: () => {
+        console.log('✅ Server confirmed!')
+        resolve(true)
+      },
+      onError: (errors) => {
+        console.error('❌ Server error:', errors)
+        resolve(false)
       }
     })
-    console.log('🟢 Response status:', response.status)
-    
-    if (!response.ok) {
-      console.error('❌ Server error:', response.status, response.statusText)
-      if (response.status === 419) {
-        console.error('❌ CSRF token mismatch! Check meta tag.')
-      }
-      return false
-    }
-    
-    console.log('✅ Server confirmed!')
-    return true
-  } catch (error) {
-    console.error('❌ markAsRead ERROR:', error)
-    return false
-  }
+  })
 }
 
 const markAllAsRead = async () => {
   isUpdating.value = true
-  try {
-    const response = await fetch('/notifications/read-all', {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+  return new Promise<void>((resolve) => {
+    router.post('/notifications/read-all', {}, {
+      preserveState: true,
+      preserveScroll: true,
+      only: [],
+      onSuccess: () => {
+        notifications.value = notifications.value.map(notif => ({
+          ...notif,
+          read_at: new Date().toISOString()
+        }))
+        unreadCount.value = 0
+        isUpdating.value = false
+        resolve()
+      },
+      onError: (errors) => {
+        console.error('Failed to mark all as read:', errors)
+        isUpdating.value = false
+        resolve()
       }
     })
-    
-    if (!response.ok) {
-      console.error('Failed to mark all as read:', response.status)
-      return
-    }
-    
-    notifications.value = notifications.value.map(notif => ({
-      ...notif,
-      read_at: new Date().toISOString()
-    }))
-    unreadCount.value = 0
-    
-    await fetchNotifications()
-  } catch (error) {
-    console.error('Failed to mark all as read:', error)
-  } finally {
-    isUpdating.value = false
-  }
+  })
 }
 
 const handleNotificationClick = async (notif: Notification) => {
@@ -113,6 +97,7 @@ const handleNotificationClick = async (notif: Notification) => {
     
     const wasUnread = !notif.read_at
     if (wasUnread) {
+      // Update UI optimistically
       notifications.value = notifications.value.map(n => 
         n.id === notif.id 
           ? { ...n, read_at: new Date().toISOString() }
@@ -120,10 +105,11 @@ const handleNotificationClick = async (notif: Notification) => {
       )
       unreadCount.value = Math.max(0, unreadCount.value - 1)
       console.log('⚡ UI updated! New count:', unreadCount.value)
-    }
-    
-    markAsRead(notif.id).then(success => {
-      if (!success && wasUnread) {
+      
+      // Wait for server to confirm before navigating
+      const success = await markAsRead(notif.id)
+      if (!success) {
+        // Rollback if server failed
         notifications.value = notifications.value.map(n =>
           n.id === notif.id
             ? { ...n, read_at: null }
@@ -132,7 +118,10 @@ const handleNotificationClick = async (notif: Notification) => {
         unreadCount.value += 1
         console.log('🔄 Rolled back! Count restored:', unreadCount.value)
       }
-    })
+      
+      // Small delay to ensure database commit completes
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
     
     isOpen.value = false
     if (notif.link) {

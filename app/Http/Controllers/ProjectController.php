@@ -115,6 +115,7 @@ class ProjectController extends Controller
         try {
             // Collect all document IDs for this project
             $documentIds = [];
+            $projectCode = $project->project_code;
             
             // Delete all related data in correct order (child → parent)
             foreach ($project->parts as $part) {
@@ -154,7 +155,11 @@ class ProjectController extends Controller
                 }
             }
             
-            // Delete activity logs related to this project (check data column for project_id or document_id)
+            // Delete activity logs related to this project
+            // Since data column is empty, match by action text containing project code
+            ActivityLog::where('action', 'like', '%' . $projectCode . '%')->delete();
+            
+            // Also delete by document_id in data if any
             if (!empty($documentIds)) {
                 ActivityLog::whereJsonContains('data->document_id', $documentIds)->delete();
                 foreach ($documentIds as $docId) {
