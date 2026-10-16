@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 interface Approval {
   level: number
@@ -12,6 +14,8 @@ interface Approval {
 
 interface Props {
   serial: string
+  qrCodeImage: string
+  verificationUrl: string
   supplier: {
     name: string
     code: string
@@ -52,74 +56,109 @@ const formatDate = (date: string) => {
         <p class="text-lg text-gray-600">Serial: <span class="font-mono font-semibold">{{ serial }}</span></p>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4">Supplier Information</h2>
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Name:</span>
-            <span class="font-semibold">{{ supplier.name }}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Supplier Information</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div>
+            <p class="text-sm text-muted-foreground">Name</p>
+            <p class="font-medium">{{ supplier.name }}</p>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Code:</span>
-            <span class="font-semibold">{{ supplier.code }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Code</p>
+            <p class="font-medium">{{ supplier.code }}</p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4">Document Information</h2>
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <span class="text-gray-600">Document:</span>
-            <span class="font-semibold">{{ document.name }}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Document Information</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div>
+            <p class="text-sm text-muted-foreground">Document</p>
+            <p class="font-medium">{{ document.name }}</p>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Part Name:</span>
-            <span class="font-semibold">{{ part.name }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Part Name</p>
+            <p class="font-medium">{{ part.name }}</p>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Part No:</span>
-            <span class="font-semibold">{{ part.part_no }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Part No</p>
+            <p class="font-medium">{{ part.part_no }}</p>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Revision:</span>
-            <span class="font-semibold">v{{ part.revision }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Revision</p>
+            <p class="font-medium">v{{ part.revision }}</p>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Status:</span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{{ document.status }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Status</p>
+            <Badge class="bg-green-500">{{ document.status }}</Badge>
           </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">Stamped At:</span>
-            <span class="font-semibold">{{ formatDate(document.stamped_at) }}</span>
+          <div>
+            <p class="text-sm text-muted-foreground">Stamped At</p>
+            <p class="font-medium">{{ formatDate(document.stamped_at) }}</p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4">Approval Chain</h2>
-        <div class="space-y-4">
-          <div 
-            v-for="approval in approvals" 
-            :key="approval.level"
-            class="border-l-4 border-green-500 pl-4 py-2"
-          >
-            <div class="font-semibold text-lg">Level {{ approval.level }} - {{ approval.role_name }}</div>
-            <div class="text-sm text-gray-600 mt-1">
-              <div>Name: {{ approval.reviewer_name }}</div>
-              <div>NIK: {{ approval.reviewer_nik }}</div>
-              <div>Date: {{ formatDate(approval.reviewed_at) }}</div>
-              <div v-if="approval.comment" class="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                <span class="font-medium text-gray-700">Comment:</span>
-                <span class="text-gray-600 ml-1">{{ approval.comment }}</span>
-              </div>
-              <div v-else class="mt-2 text-gray-400 italic text-xs">
-                No comment
+      <Card>
+        <CardHeader>
+          <CardTitle>QR Code Verification</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="flex flex-col items-center space-y-4">
+            <div class="bg-white p-4 rounded-lg border-2 border-gray-200">
+              <img :src="qrCodeImage" alt="QR Code" class="w-64 h-64" />
+            </div>
+            <div class="text-center space-y-2">
+              <p class="text-sm text-muted-foreground">Scan this QR code to verify this document</p>
+              <div class="pt-2">
+                <p class="text-xs text-muted-foreground mb-2">Or click the link below if you can't scan:</p>
+                <a :href="verificationUrl" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline break-all">
+                  {{ verificationUrl }}
+                </a>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Approval Chain</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-4">
+            <div 
+              v-for="approval in approvals" 
+              :key="approval.level"
+              class="border rounded-lg p-4 space-y-2"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <Badge class="bg-green-500">Level {{ approval.level }}</Badge>
+                  <span class="text-sm font-medium">{{ approval.role_name }}</span>
+                </div>
+                <span class="text-sm text-muted-foreground">{{ formatDate(approval.reviewed_at) }}</span>
+              </div>
+              <div class="space-y-1">
+                <p class="text-sm"><span class="font-medium">Name:</span> {{ approval.reviewer_name }}</p>
+                <p class="text-sm"><span class="font-medium">NIK:</span> {{ approval.reviewer_nik }}</p>
+              </div>
+              <div v-if="approval.comment" class="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                <span class="font-medium text-gray-700 text-sm">Comment:</span>
+                <p class="text-sm text-gray-600 mt-1">{{ approval.comment }}</p>
+              </div>
+              <div v-else class="mt-2">
+                <p class="text-sm text-gray-400 italic">No comment</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div class="text-center text-sm text-gray-500 mt-8">
         This document has been verified and approved through the complete review process.

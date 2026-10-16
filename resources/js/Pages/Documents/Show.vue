@@ -12,6 +12,11 @@ import { ref, computed } from 'vue'
 
 const props = defineProps<{
   document: any
+  qrData?: {
+    serial: string
+    qrCodeImage: string
+    verificationUrl: string
+  } | null
 }>()
 
 const page = usePage()
@@ -240,6 +245,44 @@ const formatFileSize = (bytes: number) => {
                   <div class="h-4 w-24 bg-gray-200 rounded"></div>
                 </div>
                 <div class="h-4 w-full bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card v-if="qrData">
+          <CardHeader>
+            <CardTitle>QR Code Verification</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="flex flex-col items-center space-y-4">
+              <div class="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <img :src="qrData.qrCodeImage" alt="QR Code" class="w-48 h-48" />
+              </div>
+              <div class="text-center space-y-2">
+                <p class="text-sm text-muted-foreground">Scan to verify document</p>
+                <div class="pt-2">
+                  <p class="text-xs text-muted-foreground mb-2">Or click link:</p>
+                  <a :href="qrData.verificationUrl" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline break-all">
+                    {{ qrData.verificationUrl }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card v-else-if="!document.barcode_serial && document.status !== 'complete'">
+          <CardHeader>
+            <CardTitle>QR Code Verification</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="flex flex-col items-center space-y-4 animate-pulse">
+              <div class="bg-gray-200 rounded-lg w-48 h-48"></div>
+              <div class="space-y-2 w-full">
+                <div class="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                <div class="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                <div class="h-3 bg-gray-200 rounded w-full"></div>
               </div>
             </div>
           </CardContent>

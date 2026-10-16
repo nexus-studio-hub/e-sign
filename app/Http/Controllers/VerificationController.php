@@ -24,8 +24,20 @@ class VerificationController extends Controller
         $supplier = $document->requiredDocument->part->supplier;
         $part = $document->requiredDocument->part;
         
+        // Generate QR code as base64 data URI
+        $url = url('/verify/' . $serial);
+        $qrCode = \Endroid\QrCode\QrCode::create($url)
+            ->setSize(300)
+            ->setMargin(10);
+        
+        $writer = new \Endroid\QrCode\Writer\PngWriter();
+        $result = $writer->write($qrCode);
+        $qrCodeDataUri = 'data:image/png;base64,' . base64_encode($result->getString());
+        
         return Inertia::render('Verification/Show', [
             'serial' => $serial,
+            'qrCodeImage' => $qrCodeDataUri,
+            'verificationUrl' => $url,
             'supplier' => [
                 'name' => $supplier->name,
                 'code' => $supplier->code,

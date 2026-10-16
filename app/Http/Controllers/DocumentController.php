@@ -27,8 +27,26 @@ class DocumentController extends Controller
             return redirect()->route('reviews.show', $id);
         }
 
+        // Generate QR code if document is complete
+        $qrData = null;
+        if ($document->status === 'complete' && $document->barcode_serial) {
+            $url = url('/verify/' . $document->barcode_serial);
+            $qrCode = \Endroid\QrCode\QrCode::create($url)
+                ->setSize(300)
+                ->setMargin(10);
+            $writer = new \Endroid\QrCode\Writer\PngWriter();
+            $result = $writer->write($qrCode);
+            
+            $qrData = [
+                'serial' => $document->barcode_serial,
+                'qrCodeImage' => 'data:image/png;base64,' . base64_encode($result->getString()),
+                'verificationUrl' => $url,
+            ];
+        }
+
         return Inertia::render('Documents/Show', [
-            'document' => $document
+            'document' => $document,
+            'qrData' => $qrData
         ]);
     }
 
