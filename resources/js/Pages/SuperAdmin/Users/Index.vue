@@ -148,7 +148,7 @@ const getRoleDisplay = (user: any) => {
                     {{ getRoleDisplay(user) }}
                   </Badge>
                 </TableCell>
-                <TableCell>{{ user.supplier?.name || '-' }}</TableCell>
+                <TableCell>{{ user.supplier?.company_name || '-' }}</TableCell>
                 <TableCell>
                   <Badge :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                     {{ user.is_active ? 'Active' : 'Inactive' }}

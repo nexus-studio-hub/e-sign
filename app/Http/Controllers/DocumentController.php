@@ -56,7 +56,15 @@ class DocumentController extends Controller
         
         $request->validate(['file' => 'required|file|max:10240']);
 
-        $document = Document::findOrFail($id);
+        $document = Document::with('requiredDocument')->findOrFail($id);
+        
+        // Check due date
+        if ($document->requiredDocument && $document->requiredDocument->due_date) {
+            if (now()->startOfDay()->gt($document->requiredDocument->due_date)) {
+                return back()->with('error', 'Deadline sudah lewat. Anda tidak dapat mengunggah dokumen setelah tanggal jatuh tempo.');
+            }
+        }
+        
         $file = $request->file('file');
         
         \Log::info('File received', ['file_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);

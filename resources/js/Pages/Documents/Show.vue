@@ -49,6 +49,21 @@ const canReview = computed(() => {
      props.document.status === 'need_revision')
 })
 
+const isAfterDueDate = computed(() => {
+  if (!props.document.required_document?.due_date) return false
+  const dueDate = new Date(props.document.required_document.due_date)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  dueDate.setHours(0, 0, 0, 0)
+  return today > dueDate
+})
+
+const canUpload = computed(() => {
+  return userRole === 'supplier' && 
+    (props.document.status === 'draft' || props.document.status === 'need_revision') &&
+    !isAfterDueDate.value
+})
+
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
@@ -294,7 +309,11 @@ const formatFileSize = (bytes: number) => {
           <CardTitle>Upload Document</CardTitle>
         </CardHeader>
         <CardContent>
-          <form @submit.prevent="submitUpload" class="space-y-4">
+          <div v-if="isAfterDueDate" class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg mb-4">
+            <p class="font-medium">Deadline sudah lewat</p>
+            <p class="text-sm">Anda tidak dapat mengunggah dokumen setelah tanggal jatuh tempo.</p>
+          </div>
+          <form v-else @submit.prevent="submitUpload" class="space-y-4">
             <div class="space-y-2">
               <Input 
                 type="file" 

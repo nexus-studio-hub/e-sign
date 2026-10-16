@@ -19,12 +19,16 @@ class RoleController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|min:3|max:50',
+        $data = $request->validate([
+            'name' => 'required|string|min:3|max:50|unique:roles,name',
             'level' => 'required|integer|between:1,3',
         ]);
 
-        Role::create($request->all());
+        // Auto-generate code from name
+        $data['code'] = strtolower(preg_replace('/[^a-z0-9]+/', '_', $data['name']));
+        $data['code'] = trim($data['code'], '_');
+
+        Role::create($data);
 
         return redirect()->route('roles.index')->with('success', 'Role berhasil ditambahkan');
     }
@@ -33,12 +37,16 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string|min:3|max:50',
+        $data = $request->validate([
+            'name' => 'required|string|min:3|max:50|unique:roles,name,' . $id,
             'level' => 'required|integer|between:1,3',
         ]);
 
-        $role->update($request->all());
+        // Auto-update code from name
+        $data['code'] = strtolower(preg_replace('/[^a-z0-9]+/', '_', $data['name']));
+        $data['code'] = trim($data['code'], '_');
+
+        $role->update($data);
 
         return redirect()->route('roles.index')->with('success', 'Role berhasil diupdate');
     }

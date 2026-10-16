@@ -115,7 +115,7 @@ class ReviewController extends Controller
         // Check if review already exists
         $review = Review::where('document_id', $document->id)
             ->where('reviewer_id', $user->id)
-            ->where('reviewer_role', $user->reviewerRole->code)
+            ->where('reviewer_role', $user->reviewerRole?->code)
             ->first();
 
         if ($review) {
@@ -132,7 +132,7 @@ class ReviewController extends Controller
                 'document_id' => $document->id,
                 'document_version_id' => $document->latestVersion->id,
                 'reviewer_id' => $user->id,
-                'reviewer_role' => $user->reviewerRole->code,
+                'reviewer_role' => $user->reviewerRole?->code ?? 'unknown',
                 'status' => 'approved',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),
@@ -199,7 +199,7 @@ class ReviewController extends Controller
         // Check if review already exists
         $review = Review::where('document_id', $document->id)
             ->where('reviewer_id', $user->id)
-            ->where('reviewer_role', $user->reviewerRole->code)
+            ->where('reviewer_role', $user->reviewerRole?->code)
             ->first();
 
         if ($review) {
@@ -216,7 +216,7 @@ class ReviewController extends Controller
                 'document_id' => $document->id,
                 'document_version_id' => $document->latestVersion->id,
                 'reviewer_id' => $user->id,
-                'reviewer_role' => $user->reviewerRole->code,
+                'reviewer_role' => $user->reviewerRole?->code ?? 'unknown',
                 'status' => 'rejected',
                 'comment' => $request->comment,
                 'reviewed_at' => now(),

@@ -13,6 +13,7 @@ class VerificationController extends Controller
             ->with([
                 'requiredDocument.part.supplier',
                 'project',
+                'versions.uploader',
                 'reviews' => function ($query) {
                     $query->where('status', 'approved')
                         ->with('reviewer.reviewerRole')
@@ -24,34 +25,40 @@ class VerificationController extends Controller
         $supplier = $document->requiredDocument->part->supplier;
         $part = $document->requiredDocument->part;
         
-        // Generate QR code as base64 data URI
-        $url = url('/verify/' . $serial);
-        $qrCode = \Endroid\QrCode\QrCode::create($url)
-            ->setSize(300)
-            ->setMargin(10);
-        
-        $writer = new \Endroid\QrCode\Writer\PngWriter();
-        $result = $writer->write($qrCode);
-        $qrCodeDataUri = 'data:image/png;base64,' . base64_encode($result->getString());
-        
         return Inertia::render('Verification/Show', [
             'serial' => $serial,
-            'qrCodeImage' => $qrCodeDataUri,
-            'verificationUrl' => $url,
             'supplier' => [
-                'name' => $supplier->name,
+                'company_name' => $supplier->company_name,
                 'code' => $supplier->code,
+                'contact_person' => $supplier->contact_person,
+                'email' => $supplier->email,
+                'phone' => $supplier->phone,
             ],
             'document' => [
                 'name' => $document->requiredDocument->document_name,
+                'type' => $document->requiredDocument->document_type,
                 'status' => $document->status,
                 'stamped_at' => $document->barcode_stamped_at,
             ],
             'part' => [
-                'name' => $part->name,
-                'part_no' => $part->part_no,
+                'name' => $part->part_name,
+                'number' => $part->part_number,
+                'model' => $part->model,
                 'revision' => $document->latestVersion->version_number ?? 1,
             ],
+            'project' => [
+                'name' => $document->project->project_name,
+                'code' => $document->project->project_code,
+            ],
+            'uploadHistory' => $document->versions->map(function ($version) {
+                return [
+                    'version' => $version->version_number,
+                    'file_name' => $version->file_name,
+                    'file_size' => round($version->file_size / 1024, 2) . ' KB',
+                    'uploaded_by' => $version->uploader->name,
+                    'uploaded_at' => $version->uploaded_at,
+                ];
+            }),
             'approvals' => $document->reviews->map(function ($review) {
                 return [
                     'level' => $review->reviewer->reviewerRole->level ?? 0,
