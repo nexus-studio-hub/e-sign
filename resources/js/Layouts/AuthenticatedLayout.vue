@@ -495,6 +495,25 @@ const breadcrumbItems = computed(() => {
 
       <!-- Content -->
       <main class="flex-1 overflow-auto p-4 lg:p-6">
+        <!-- Flash Messages -->
+        <div v-if="$page.props.flash?.success" class="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between">
+          <span>{{ $page.props.flash.success }}</span>
+          <button @click="$page.props.flash.success = null" class="text-green-600 hover:text-green-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div v-if="$page.props.flash?.error" class="mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center justify-between">
+          <span>{{ $page.props.flash.error }}</span>
+          <button @click="$page.props.flash.error = null" class="text-red-600 hover:text-red-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
         <slot />
       </main>
     </div>

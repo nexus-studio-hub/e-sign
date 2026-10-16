@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
         
         // User Management
         Route::resource('users', UserController::class);
+        Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
         
         // Supplier Management
         Route::resource('suppliers', SupplierController::class);

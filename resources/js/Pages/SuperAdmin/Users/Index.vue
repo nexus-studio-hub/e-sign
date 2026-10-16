@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Link, router } from '@inertiajs/vue3'
-import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Power } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 interface Props {
   users: {
@@ -23,6 +25,8 @@ interface Props {
 }
 
 defineProps<Props>()
+
+const { confirm } = useConfirm()
 
 const searchQuery = ref('')
 const debounceTimer = ref<number | null>(null)
@@ -46,11 +50,32 @@ const goToPage = (url: string) => {
   }
 }
 
-const deleteUser = (id: number) => {
-  if (confirm('Are you sure you want to deactivate this user?')) {
-    router.delete(`/admin/users/${id}`, {
-      preserveState: true,
-    })
+const deleteUser = async (id: number) => {
+  const confirmed = await confirm({
+    title: 'Hapus User',
+    description: 'Apakah Anda yakin ingin menghapus user ini secara permanen? Tindakan ini tidak dapat dibatalkan.',
+    confirmText: 'Hapus',
+    cancelText: 'Batal',
+    variant: 'danger'
+  })
+
+  if (confirmed) {
+    router.delete(`/admin/users/${id}`)
+  }
+}
+
+const toggleStatus = async (id: number, currentStatus: boolean) => {
+  const action = currentStatus ? 'nonaktifkan' : 'aktifkan'
+  const confirmed = await confirm({
+    title: currentStatus ? 'Nonaktifkan User' : 'Aktifkan User',
+    description: `Apakah Anda yakin ingin ${action} user ini?`,
+    confirmText: currentStatus ? 'Nonaktifkan' : 'Aktifkan',
+    cancelText: 'Batal',
+    variant: currentStatus ? 'warning' : 'default'
+  })
+
+  if (confirmed) {
+    router.post(`/admin/users/${id}/toggle-status`)
   }
 }
 
@@ -140,6 +165,15 @@ const getRoleDisplay = (user: any) => {
                       v-if="user.role !== 'superadmin'"
                       size="sm" 
                       variant="outline"
+                      @click="toggleStatus(user.id, user.is_active)"
+                      :title="user.is_active ? 'Deactivate user' : 'Activate user'"
+                    >
+                      <Power :class="['w-4 h-4', user.is_active ? 'text-orange-500' : 'text-green-500']" />
+                    </Button>
+                    <Button 
+                      v-if="user.role !== 'superadmin'"
+                      size="sm" 
+                      variant="outline"
                       @click="deleteUser(user.id)"
                     >
                       <Trash2 class="w-4 h-4 text-red-500" />
@@ -171,5 +205,7 @@ const getRoleDisplay = (user: any) => {
         </CardContent>
       </Card>
     </div>
+
+    <ConfirmDialog />
   </AuthenticatedLayout>
 </template>

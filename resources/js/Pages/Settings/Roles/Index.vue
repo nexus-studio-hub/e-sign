@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pencil, Trash2 } from 'lucide-vue-next'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 interface Role {
   id: number
@@ -21,6 +23,8 @@ interface Role {
 const props = defineProps<{
   roles: Role[]
 }>()
+
+const { confirm } = useConfirm()
 
 const showForm = ref(false)
 const editingRole = ref<Role | null>(null)
@@ -62,8 +66,16 @@ const submitForm = () => {
   }
 }
 
-const deleteRole = (id: number) => {
-  if (confirm('Apakah Anda yakin ingin menghapus role ini?')) {
+const deleteRole = async (id: number) => {
+  const confirmed = await confirm({
+    title: 'Hapus Role',
+    description: 'Apakah Anda yakin ingin menghapus role ini? Role yang masih digunakan oleh user tidak dapat dihapus.',
+    confirmText: 'Hapus',
+    cancelText: 'Batal',
+    variant: 'danger'
+  })
+
+  if (confirmed) {
     router.delete(`/admin/roles/${id}`)
   }
 }
@@ -141,5 +153,7 @@ const deleteRole = (id: number) => {
         </CardContent>
       </Card>
     </div>
+
+    <ConfirmDialog />
   </AuthenticatedLayout>
 </template>

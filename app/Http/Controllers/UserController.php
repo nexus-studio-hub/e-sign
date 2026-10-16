@@ -107,9 +107,24 @@ class UserController extends Controller
             return back()->with('error', 'Cannot delete superadmin user');
         }
         
-        // Soft delete: set is_active = false
-        $user->update(['is_active' => false]);
+        // Hard delete
+        $user->delete();
         
-        return redirect()->route('users.index')->with('success', 'User deactivated successfully');
+        return redirect()->route('users.index')->with('success', 'User deleted successfully');
+    }
+
+    public function toggleStatus($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Prevent toggling superadmin
+        if ($user->role === 'superadmin') {
+            return back()->with('error', 'Cannot modify superadmin status');
+        }
+        
+        $user->update(['is_active' => !$user->is_active]);
+        
+        $status = $user->is_active ? 'activated' : 'deactivated';
+        return redirect()->route('users.index')->with('success', "User {$status} successfully");
     }
 }
