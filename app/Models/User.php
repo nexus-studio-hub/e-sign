@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'role_id',
         'supplier_id',
+        'nik',
     ];
 
     /**

@@ -4624,3 +4624,13 @@ DETAIL:  Failing row contains (1, 5, 5, 3, null, approved, null, 2026-10-09 12:4
 [2026-10-09 16:36:26] local.INFO: Version created successfully {"version":2,"file":"98123123789_PPAP_v2.pdf"} 
 [2026-10-09 16:36:26] local.INFO: Auto-submitted for review  
 [2026-10-09 16:36:27] local.INFO: Upload completed successfully  
+[2026-10-16 11:13:43] local.ERROR: Barcode stamping failed: You need to install the imagick extension to use this back end  
+[2026-10-16 11:18:38] local.ERROR: Barcode stamping failed: The xref position points to an incorrect object type.  
+[2026-10-16 11:19:56] local.ERROR: Barcode stamping failed: The xref position points to an incorrect object type.  
+[2026-10-16 11:27:03] local.INFO: Upload started {"document_id":"27","user_id":8} 
+[2026-10-16 11:27:03] local.INFO: File received {"file_name":"test.pdf","size":550} 
+[2026-10-16 11:27:03] local.INFO: Creating new version {"version":1} 
+[2026-10-16 11:27:03] local.INFO: Version created successfully {"version":1,"file":"98123123789_Control Plan_v1.pdf"} 
+[2026-10-16 11:27:03] local.INFO: Auto-submitted for review  
+[2026-10-16 11:27:03] local.INFO: Upload completed successfully  
+[2026-10-16 11:28:09] local.ERROR: Barcode stamping failed: The xref position points to an incorrect object type.  

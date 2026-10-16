@@ -8,9 +8,12 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "endroid/qr-code": "^5.0",
         "inertiajs/inertia-laravel": "^3.3",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
+        "setasign/fpdf": "^1.9",
+        "setasign/fpdi": "^2.6",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "tightenco/ziggy": "^2.6"
     },

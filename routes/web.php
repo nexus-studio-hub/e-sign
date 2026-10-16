@@ -13,8 +13,12 @@ use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\VerificationController;
 
 Route::get('/', fn() => redirect('/login'));
+
+// Public Verification Route (No Authentication Required)
+Route::get('/verify/{serial}', [VerificationController::class, 'show'])->name('verify.show');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);

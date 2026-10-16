@@ -154,6 +154,13 @@ class ReviewController extends Controller
         if ($newStatus === 'complete') {
             // Final approval (Level 3) - notify supplier
             NotificationService::notifyFinalApproval($document);
+            
+            // Trigger barcode stamping
+            try {
+                app(\App\Services\BarcodeService::class)->stampDocument($document);
+            } catch (\Exception $e) {
+                \Log::error('Barcode stamping failed: ' . $e->getMessage());
+            }
         } else {
             // Notify next level reviewers only
             NotificationService::notifyNextReviewer($document);

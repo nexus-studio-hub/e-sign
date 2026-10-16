@@ -43,6 +43,28 @@ class DocumentController extends Controller
         
         \Log::info('File received', ['file_name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
         
+        // Validate PDF file
+        if ($file->getClientOriginalExtension() === 'pdf') {
+            // Check minimum file size
+            if ($file->getSize() < 1024) {
+                return back()->with('error', 'File too small. Please upload a valid PDF (minimum 1KB)');
+            }
+            
+            // Validate PDF structure
+            try {
+                $tempPath = $file->getRealPath();
+                $pdf = new \setasign\Fpdi\Fpdi();
+                $pageCount = $pdf->setSourceFile($tempPath);
+                
+                if ($pageCount < 1) {
+                    return back()->with('error', 'Invalid PDF file. No pages found.');
+                }
+            } catch (\Exception $e) {
+                \Log::error('PDF validation failed: ' . $e->getMessage());
+                return back()->with('error', 'Invalid or corrupt PDF file. Please upload a valid PDF.');
+            }
+        }
+        
         // Get next version number
         $latestVersion = DocumentVersion::where('document_id', $document->id)
             ->max('version_number');
@@ -99,6 +121,17 @@ class DocumentController extends Controller
     public function download($versionId)
     {
         $version = DocumentVersion::findOrFail($versionId);
+        $document = $version->document;
+        
+        // If document is complete and has stamped file, serve that
+        if ($document->status === 'complete' && $document->stamped_file_path) {
+            $stampedPath = storage_path('app/public/' . $document->stamped_file_path);
+            if (file_exists($stampedPath)) {
+                return response()->download($stampedPath, $version->file_name);
+            }
+        }
+        
+        // Otherwise serve original
         $filePath = storage_path('app/public/' . $version->file_path);
         
         if (!file_exists($filePath)) {
@@ -111,6 +144,17 @@ class DocumentController extends Controller
     public function preview($versionId)
     {
         $version = DocumentVersion::findOrFail($versionId);
+        $document = $version->document;
+        
+        // If document is complete and has stamped file, serve that
+        if ($document->status === 'complete' && $document->stamped_file_path) {
+            $stampedPath = storage_path('app/public/' . $document->stamped_file_path);
+            if (file_exists($stampedPath)) {
+                return response()->file($stampedPath);
+            }
+        }
+        
+        // Otherwise serve original
         $filePath = storage_path('app/public/' . $version->file_path);
         
         if (!file_exists($filePath)) {

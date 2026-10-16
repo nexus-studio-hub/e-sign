@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
-    protected $fillable = ['project_id', 'required_document_id', 'current_version', 'status'];
+    protected $fillable = ['project_id', 'required_document_id', 'current_version', 'status', 'barcode_serial', 'barcode_stamped_at', 'stamped_file_path'];
 
     public function project()
     {
