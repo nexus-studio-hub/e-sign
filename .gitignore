@@ -32,6 +32,10 @@ yarn-error.log
 
 # Documentation
 /docs
+QUICK_START.md
+DELETE-FIX-FINAL.md
+IMPLEMENTATION_GUIDE.md
+TESTING-DELETE.md
 
 # OS
 .DS_Store
