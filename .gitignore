@@ -1,8 +1,19 @@
+# Laravel
 /node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
+/storage/app/*
+!/storage/app/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
 /vendor
 .env
 .env.backup
@@ -13,7 +24,21 @@ Homestead.yaml
 auth.json
 npm-debug.log
 yarn-error.log
+
+# IDE
 /.fleet
 /.idea
 /.vscode
+
+# Documentation
 /docs
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Installer logs
+/installer/install.log
